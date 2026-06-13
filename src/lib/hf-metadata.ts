@@ -106,7 +106,10 @@ function uniqueProfiles<T extends { label: string }>(profiles: T[]): T[] {
 
 function bytesToGB(sizeBytes: number | null | undefined): number | null {
   if (!Number.isFinite(sizeBytes) || !sizeBytes || sizeBytes <= 0) return null;
-  return Math.round((sizeBytes / (1024 ** 3)) * 10) / 10;
+  const value = sizeBytes / (1024 ** 3);
+  if (value >= 1) return Math.round(value * 10) / 10;
+  if (value >= 0.1) return Math.round(value * 100) / 100;
+  return Math.max(Math.round(value * 1000) / 1000, 0.001);
 }
 
 function normalizeBaseModelId(value: unknown): string | null {

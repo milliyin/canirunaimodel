@@ -66,6 +66,13 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+function roundSmallFriendly(value: number): number {
+  if (value >= 1) return round1(value);
+  if (value >= 0.1) return Math.round(value * 100) / 100;
+  if (value > 0) return Math.max(Math.round(value * 1000) / 1000, 0.001);
+  return 0;
+}
+
 export function normalizeTensorType(input: string | null | undefined): HFTensorType {
   const value = (input || "").toLowerCase();
   if (!value) return "unknown";
@@ -89,7 +96,7 @@ export function inferParamsFromBytes(
 ): number | null {
   const bytesPerParam = BYTES_PER_PARAM[tensorType];
   if (!bytesPerParam || !Number.isFinite(totalBytes) || totalBytes <= 0) return null;
-  return round1(totalBytes / bytesPerParam / 1_000_000_000);
+  return roundSmallFriendly(totalBytes / bytesPerParam / 1_000_000_000);
 }
 
 export function inferParamsFromSafetensors(
@@ -118,7 +125,7 @@ export function inferParamsFromSafetensors(
   }
 
   return {
-    paramsBillions: round1(totalParams / 1_000_000_000),
+    paramsBillions: roundSmallFriendly(totalParams / 1_000_000_000),
     tensorType: dominantTensorType,
   };
 }
