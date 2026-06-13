@@ -28,4 +28,4 @@ Disallow: /api/
 Disallow: /_astro/
 
 Host: canirunaimodel.vercel.app
-Sitemap: https://canirunaimodel.vercel.app/sitemap-index.xml
+Sitemap: https://canirunaimodel.vercel.app/sitemap.xml
