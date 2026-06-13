@@ -36,6 +36,15 @@ const ogImageURL = new URL(image, Astro.site);
     <meta name="robots" content="index, follow" />
     <meta name="author" content="milliyin" />
     <meta name="generator" content={Astro.generator} />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D24FH8VZB7"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-D24FH8VZB7");
+    </script>
 
     <script is:inline>
       (function () {
