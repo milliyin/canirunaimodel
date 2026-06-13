@@ -1,4 +1,31 @@
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: Slurp
+User-agent: DuckDuckBot
+User-agent: Baiduspider
+User-agent: YandexBot
+User-agent: facebot
+User-agent: ia_archiver
+Allow: /
+Disallow: /api/
+Disallow: /_astro/
+
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: CCBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: cohere-ai
+User-agent: PerplexityBot
+User-agent: YouBot
+Allow: /
+Disallow: /api/
+Disallow: /_astro/
+
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /_astro/
 
+Host: canirunaimodel.vercel.app
 Sitemap: https://canirunaimodel.vercel.app/sitemap-index.xml
