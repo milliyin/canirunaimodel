@@ -150,6 +150,10 @@ function inferTensorTypeFromRepoInfo(repoInfo: HFModelInfo): HFTensorType {
   const explicit = normalizeTensorType(text);
   if (explicit !== "unknown") return explicit;
 
+  if (text.includes(".pth") || text.includes(".pt")) {
+    return "f32";
+  }
+
   if (text.includes(".safetensors") || text.includes("safetensors")) {
     return "bf16";
   }
@@ -228,6 +232,9 @@ function deriveEstimate(context: HFRepoContext): DerivedEstimate {
           if ((lower.endsWith(".safetensors") || lower.endsWith(".bin")) && sibling.size) {
             return estimateMemoryFromFileSize(label, "bf16", sibling.size);
           }
+          if ((lower.endsWith(".pth") || lower.endsWith(".pt")) && sibling.size) {
+            return estimateMemoryFromFileSize(label, "f32", sibling.size);
+          }
           return null;
         }
         if (sibling.size) {
@@ -294,6 +301,8 @@ function deriveEstimate(context: HFRepoContext): DerivedEstimate {
 
   if (profiles.some((profile) => profile.source === "filesize")) {
     notes.push("At least one estimate comes from actual file size metadata.");
+  } else if (usedStorageFallback && repoTensor === "f32") {
+    notes.push("Estimate derived from PyTorch checkpoint size with an F32 fallback.");
   } else if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from Hugging Face safetensors metadata.");
   } else if (usedStorageFallback && tensorFallbackFromRepo) {
