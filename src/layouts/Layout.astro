@@ -10,8 +10,8 @@ interface Props {
 }
 
 const {
-  title = "CanIRun.ai — Can your machine run AI models?",
-  description = "Detect your hardware and find out which AI models you can run locally. GPU, CPU, and RAM analysis in your browser.",
+  title = "CanIRun.ai - Check if your machine can run any Hugging Face model",
+  description = "Paste a Hugging Face model URL, detect your hardware, and estimate whether the model will run locally.",
   image = "/og/home.jpg",
   type = "website",
 } = Astro.props;
@@ -32,23 +32,23 @@ const ogImageURL = new URL(image, Astro.site);
     <meta name="description" content={description} />
     <meta name="theme-color" content="#08080a" />
     <meta name="robots" content="index, follow" />
-    <meta name="author" content="midudev" />
+    <meta name="author" content="milliyin" />
     <meta name="generator" content={Astro.generator} />
 
     <script is:inline>
-      (function(){
-        function applyTheme(){
-          var t=localStorage.getItem("theme");
-          if(t==="light"||(!t&&matchMedia("(prefers-color-scheme: light)").matches)){
+      (function () {
+        function applyTheme() {
+          var t = localStorage.getItem("theme");
+          if (t === "light" || (!t && matchMedia("(prefers-color-scheme: light)").matches)) {
             document.documentElement.classList.add("light");
-            document.querySelector('meta[name="theme-color"]').setAttribute("content","#ffffff");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content", "#ffffff");
           } else {
             document.documentElement.classList.remove("light");
-            document.querySelector('meta[name="theme-color"]').setAttribute("content","#08080a");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content", "#08080a");
           }
         }
         applyTheme();
-        document.addEventListener("astro:after-swap",applyTheme);
+        document.addEventListener("astro:after-swap", applyTheme);
       })();
     </script>
 
@@ -68,8 +68,8 @@ const ogImageURL = new URL(image, Astro.site);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL.href} />
-    <meta name="twitter:creator" content="@midudev" />
-    <meta name="twitter:site" content="@midudev" />
+    <meta name="twitter:creator" content="@milliyin" />
+    <meta name="twitter:site" content="@milliyin" />
 
     <ClientRouter />
     <slot name="head" />
@@ -87,7 +87,10 @@ const ogImageURL = new URL(image, Astro.site);
           const text = trigger.dataset.tooltip;
           if (!text) return;
 
-          if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
           if (currentTrigger === trigger && popup) return;
           hide(true);
 
@@ -145,7 +148,13 @@ const ogImageURL = new URL(image, Astro.site);
           }
 
           el.classList.remove("visible");
-          const cleanup = () => { el.remove(); if (popup === el) { popup = null; arrow = null; } };
+          const cleanup = () => {
+            el.remove();
+            if (popup === el) {
+              popup = null;
+              arrow = null;
+            }
+          };
           el.addEventListener("transitionend", cleanup, { once: true });
           setTimeout(cleanup, 250);
         }

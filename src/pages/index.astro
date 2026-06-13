@@ -11,21 +11,24 @@ import ModelListContent from "@/components/ModelListContent.astro";
       "@type": "WebApplication",
       "name": "CanIRun.ai",
       "url": "https://canirun.ai",
-      "description": "Detect your hardware and find out which AI models you can run locally. GPU, CPU, and RAM analysis in your browser.",
+      "description": "Paste a Hugging Face model URL, detect your hardware, and estimate whether the model will run locally.",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web Browser",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "creator": { "@type": "Person", "name": "midudev", "url": "https://midu.dev" }
+      "creator": { "@type": "Person", "name": "milliyin", "url": "https://milliyin.dev/" }
     })}></script>
   </Fragment>
   <NavHeader />
   <ModelListContent>
     <header slot="header" class="mb-10 text-center">
       <h1 class="font-pixel text-3xl tracking-tight text-accent sm:text-4xl">
-        Can I Run AI locally?
+        Can I run this Hugging Face model?
       </h1>
       <p class="mt-2 text-base text-muted">
-        Find out which AI models your machine can actually run.
+        Detect your hardware, inspect model metadata, and estimate whether a Hugging Face repo will run locally.
+      </p>
+      <p class="mt-3 font-mono text-xs uppercase tracking-[0.18em] text-primary/50">
+        Models today. Datasets and Spaces next.
       </p>
     </header>
   </ModelListContent>

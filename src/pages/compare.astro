@@ -5,14 +5,12 @@ import Footer from "@/components/Footer.astro";
 import { models } from "@/data/models";
 import IconGpu from "@/icons/gpu.svg";
 
-const sortedModels = [...models].sort(
-  (a, b) => a.paramsBillions - b.paramsBillions
-);
+const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBillions);
 ---
 
 <Layout
-  title="Compare Devices — CanIRun.ai"
-  description="Compare how well AI models run on two different devices side by side. GPU, Apple Silicon, and mobile comparison."
+  title="Compare Devices for Hugging Face Models - CanIRun.ai"
+  description="Compare two devices side by side, then jump into checking any Hugging Face model URL on your hardware."
 >
   <NavHeader />
   <main class="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
@@ -21,11 +19,36 @@ const sortedModels = [...models].sort(
         Compare Devices
       </h1>
       <p class="mt-2 text-base text-muted">
-        Pick two devices and see how each AI model performs on them.
+        Compare two machines against the library, then jump into any Hugging Face repo you want to check live.
       </p>
     </header>
 
-    <!-- Device Selectors -->
+    <section class="mb-10 rounded-2xl border border-edge/70 bg-surface-card/70 p-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-accent/80">Hugging Face quick check</p>
+          <h2 class="mt-2 font-pixel text-xl text-primary">Paste a model URL and check it on your machine</h2>
+          <p class="mt-2 text-sm leading-6 text-secondary">
+            This page compares devices using the built-in model library. For any external repo, open the HF checker and fetch live metadata straight from Hugging Face.
+          </p>
+        </div>
+        <form action="/check" method="get" class="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
+          <input
+            type="url"
+            name="url"
+            placeholder="https://huggingface.co/google/gemma-3-4b-it"
+            class="min-w-0 flex-1 rounded-xl border border-edge bg-surface px-4 py-3 font-mono text-sm text-primary outline-none transition-colors focus:border-accent/50"
+          />
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center rounded-xl border border-accent/40 bg-accent/10 px-5 py-3 font-mono text-sm text-accent transition-colors hover:bg-accent/15"
+          >
+            Open HF check
+          </button>
+        </form>
+      </div>
+    </section>
+
     <section class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div class="rounded-lg border border-edge/60 bg-surface-card p-4">
         <label class="mb-2 flex items-center gap-2 font-mono text-[13px] text-muted uppercase tracking-wider">
@@ -47,7 +70,6 @@ const sortedModels = [...models].sort(
       </div>
     </section>
 
-    <!-- Device Specs Summary -->
     <section id="specs-bar" class="mb-8 hidden">
       <div class="grid grid-cols-2 gap-4">
         <div id="specs-a" class="rounded-lg border border-edge/40 bg-surface-raised px-4 py-3 font-mono text-[13px] text-secondary"></div>
@@ -55,83 +77,81 @@ const sortedModels = [...models].sort(
       </div>
     </section>
 
-    <!-- Empty state -->
     <div id="empty-state" class="py-20 text-center">
       <p class="font-pixel text-lg text-muted/60">Detecting your hardware...</p>
-      <p class="mt-2 text-base text-muted/40">We'll compare your device against the M5 Max automatically</p>
+      <p class="mt-2 text-base text-muted/40">We will compare your device against the M5 Max automatically</p>
     </div>
 
-    <!-- Comparison Table -->
     <div id="compare-table" class="hidden">
-      <!-- Sort & Summary bar -->
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-2">
           <label for="sort-by" class="font-mono text-[13px] text-muted uppercase tracking-wider">Sort by</label>
           <select id="sort-by" class="compare-select compare-select--sm">
-            <option value="params-asc">Size ↑</option>
-            <option value="params-desc">Size ↓</option>
+            <option value="params-asc">Size up</option>
+            <option value="params-desc">Size down</option>
             <option value="release-desc">Newest</option>
             <option value="release-asc">Oldest</option>
-            <option value="name-asc">Name A→Z</option>
-            <option value="name-desc">Name Z→A</option>
-            <option value="context-desc">Context ↓</option>
-            <option value="context-asc">Context ↑</option>
-            <option value="vram-asc">Memory ↑</option>
-            <option value="vram-desc">Memory ↓</option>
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="context-desc">Context down</option>
+            <option value="context-asc">Context up</option>
+            <option value="vram-asc">Memory up</option>
+            <option value="vram-desc">Memory down</option>
           </select>
         </div>
         <div id="compare-summary" class="flex items-center justify-center gap-6 font-mono text-sm">
-        <span class="flex items-center gap-1.5">
-          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-can-run)"></span>
-          <span class="text-secondary"><span id="header-a-label">A</span> wins: <strong id="wins-a" class="text-primary">0</strong></span>
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-maybe)"></span>
-          <span class="text-secondary">Tie: <strong id="wins-tie" class="text-primary">0</strong></span>
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-info)"></span>
-          <span class="text-secondary"><span id="header-b-label">B</span> wins: <strong id="wins-b" class="text-primary">0</strong></span>
-        </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-can-run)"></span>
+            <span class="text-secondary"><span id="header-a-label">A</span> wins: <strong id="wins-a" class="text-primary">0</strong></span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-maybe)"></span>
+            <span class="text-secondary">Tie: <strong id="wins-tie" class="text-primary">0</strong></span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-info)"></span>
+            <span class="text-secondary"><span id="header-b-label">B</span> wins: <strong id="wins-b" class="text-primary">0</strong></span>
+          </span>
         </div>
       </div>
 
-      <!-- Table Header -->
       <div class="compare-row compare-header sticky top-0 z-10 bg-surface font-mono text-xs uppercase tracking-wider text-muted">
         <div class="col-model">Model</div>
         <div class="col-device text-center" id="col-header-a">Device A</div>
         <div class="col-device text-center" id="col-header-b">Device B</div>
       </div>
 
-      <!-- Model Rows -->
       <div id="compare-rows">
         {sortedModels.map((model) => {
-          const q4 = model.quants.find(q => q.name === "Q4_K_M") || model.quants[0];
+          const q4 = model.quants.find((q) => q.name === "Q4_K_M") || model.quants[0];
           return (
-          <a href={`/model/${model.id}`} class="compare-row group" data-compare-id={model.id}
-            data-sort-params={model.paramsBillions}
-            data-sort-name={model.name.toLowerCase()}
-            data-sort-release={model.releaseDate || "0000-00"}
-            data-sort-context={model.contextLength}
-            data-sort-vram={q4?.vramGB ?? 0}
-          >
-            <div class="col-model min-w-0">
-              <span class="truncate font-pixel text-sm text-primary group-hover:text-accent transition-colors">{model.name}</span>
-              <span class="ml-2 font-mono text-xs text-muted shrink-0">{model.params}</span>
-            </div>
-            <div class="col-device" data-side="a">
-              <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">—</span>
-              <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
-              <span data-toks class="font-mono text-xs text-muted"></span>
-              <span data-mem class="font-mono text-[11px] text-muted/50"></span>
-            </div>
-            <div class="col-device" data-side="b">
-              <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">—</span>
-              <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
-              <span data-toks class="font-mono text-xs text-muted"></span>
-              <span data-mem class="font-mono text-[11px] text-muted/50"></span>
-            </div>
-          </a>
+            <a
+              href={`/model/${model.id}`}
+              class="compare-row group"
+              data-compare-id={model.id}
+              data-sort-params={model.paramsBillions}
+              data-sort-name={model.name.toLowerCase()}
+              data-sort-release={model.releaseDate || "0000-00"}
+              data-sort-context={model.contextLength}
+              data-sort-vram={q4?.vramGB ?? 0}
+            >
+              <div class="col-model min-w-0">
+                <span class="truncate font-pixel text-sm text-primary transition-colors group-hover:text-accent">{model.name}</span>
+                <span class="ml-2 shrink-0 font-mono text-xs text-muted">{model.params}</span>
+              </div>
+              <div class="col-device" data-side="a">
+                <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">-</span>
+                <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
+                <span data-toks class="font-mono text-xs text-muted"></span>
+                <span data-mem class="font-mono text-[11px] text-muted/50"></span>
+              </div>
+              <div class="col-device" data-side="b">
+                <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">-</span>
+                <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
+                <span data-toks class="font-mono text-xs text-muted"></span>
+                <span data-mem class="font-mono text-[11px] text-muted/50"></span>
+              </div>
+            </a>
           );
         })}
       </div>
@@ -157,13 +177,13 @@ const sortedModels = [...models].sort(
   const DEFAULT_DEVICE_B = "apple:m5 max";
 
   const GRADES: Record<Grade, GradeInfo> = {
-    "S": { letter: "S", label: "Runs great",  color: "var(--color-can-run)" },
-    "A": { letter: "A", label: "Runs well",   color: "var(--color-grade-a)" },
-    "B": { letter: "B", label: "Decent",      color: "var(--color-grade-b)" },
-    "C": { letter: "C", label: "Tight fit",   color: "var(--color-maybe)" },
-    "D": { letter: "D", label: "Barely runs", color: "var(--color-grade-d)" },
-    "F": { letter: "F", label: "Too heavy",   color: "var(--color-cannot-run)" },
-    "?": { letter: "?", label: "Unknown",     color: "var(--color-muted)" },
+    S: { letter: "S", label: "Runs great", color: "var(--color-can-run)" },
+    A: { letter: "A", label: "Runs well", color: "var(--color-grade-a)" },
+    B: { letter: "B", label: "Decent", color: "var(--color-grade-b)" },
+    C: { letter: "C", label: "Tight fit", color: "var(--color-maybe)" },
+    D: { letter: "D", label: "Barely runs", color: "var(--color-grade-d)" },
+    F: { letter: "F", label: "Too heavy", color: "var(--color-cannot-run)" },
+    "?": { letter: "?", label: "Unknown", color: "var(--color-muted)" },
   };
 
   const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
@@ -209,10 +229,7 @@ const sortedModels = [...models].sort(
 
   function getDeviceLabel(deviceKey: string): string {
     if (deviceKey === "auto" && detectedHW) return getDisplayName(detectedHW);
-    if (deviceKey.startsWith("apple:")) {
-      const chip = deviceKey.slice(6);
-      return formatChipName(chip);
-    }
+    if (deviceKey.startsWith("apple:")) return formatChipName(deviceKey.slice(6));
     if (deviceKey.startsWith("gpu:")) return deviceKey.slice(4);
     if (deviceKey.startsWith("mobile:")) return deviceKey.slice(7);
     return deviceKey;
@@ -224,7 +241,7 @@ const sortedModels = [...models].sort(
     if (hw.ramGB) parts.push(`${hw.ramGB} GB ${hw.isAppleSilicon ? "Unified" : "VRAM"}`);
     if (hw.memoryBandwidth) parts.push(`~${hw.memoryBandwidth} GB/s`);
     if (hw.gpuCores) parts.push(`${hw.gpuCores.toLocaleString()} cores`);
-    container.innerHTML = parts.join(' <span class="text-edge">·</span> ');
+    container.innerHTML = parts.join(' <span class="text-edge">|</span> ');
   }
 
   function updateDynamicLabels() {
@@ -254,9 +271,9 @@ const sortedModels = [...models].sort(
     const keyB = selectB.value;
 
     if ((!keyA && keyA !== "auto") || !keyB) {
-      $("#empty-state")!.classList.remove("hidden");
-      $("#compare-table")!.classList.add("hidden");
-      $("#specs-bar")!.classList.add("hidden");
+      $("#empty-state")?.classList.remove("hidden");
+      $("#compare-table")?.classList.add("hidden");
+      $("#specs-bar")?.classList.add("hidden");
       return;
     }
 
@@ -266,30 +283,33 @@ const sortedModels = [...models].sort(
 
     updateDynamicLabels();
 
-    const specsBar = $("#specs-bar")!;
-    specsBar.classList.remove("hidden");
-    renderSpecs($("#specs-a")!, keyA, hwA);
-    renderSpecs($("#specs-b")!, keyB, hwB);
+    const specsBar = $("#specs-bar");
+    specsBar?.classList.remove("hidden");
+    if ($("#specs-a")) renderSpecs($("#specs-a") as HTMLElement, keyA, hwA);
+    if ($("#specs-b")) renderSpecs($("#specs-b") as HTMLElement, keyB, hwB);
 
-    $("#empty-state")!.classList.add("hidden");
-    $("#compare-table")!.classList.remove("hidden");
+    $("#empty-state")?.classList.add("hidden");
+    $("#compare-table")?.classList.remove("hidden");
 
-    let winsA = 0, winsB = 0, ties = 0;
+    let winsA = 0;
+    let winsB = 0;
+    let ties = 0;
 
     const rows = document.querySelectorAll<HTMLElement>("[data-compare-id]");
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const modelId = row.dataset.compareId;
-      const model = models.find(m => m.id === modelId);
+      const model = models.find((m) => m.id === modelId);
       if (!model) return;
 
-      const q4 = model.quants.find(q => q.name === "Q4_K_M") || model.quants[0];
+      const q4 = model.quants.find((q) => q.name === "Q4_K_M") || model.quants[0];
       if (!q4) return;
 
       const evalA = evaluateModelComplete(q4.vramGB, hwA, model.paramsBillions);
       const evalB = evaluateModelComplete(q4.vramGB, hwB, model.paramsBillions);
 
-      const sideA = row.querySelector<HTMLElement>('[data-side="a"]')!;
-      const sideB = row.querySelector<HTMLElement>('[data-side="b"]')!;
+      const sideA = row.querySelector<HTMLElement>('[data-side="a"]');
+      const sideB = row.querySelector<HTMLElement>('[data-side="b"]');
+      if (!sideA || !sideB) return;
 
       renderSide(sideA, evalA);
       renderSide(sideB, evalB);
@@ -298,11 +318,9 @@ const sortedModels = [...models].sort(
       row.classList.remove("winner-a", "winner-b", "winner-tie");
 
       let winner: "a" | "b" | "tie" = "tie";
-      if (diff > 5) {
-        winner = "a";
-      } else if (diff < -5) {
-        winner = "b";
-      } else {
+      if (diff > 5) winner = "a";
+      else if (diff < -5) winner = "b";
+      else {
         const toksA = evalA.toksPerSec ?? 0;
         const toksB = evalB.toksPerSec ?? 0;
         const toksDiff = toksA - toksB;
@@ -310,50 +328,68 @@ const sortedModels = [...models].sort(
         else if (toksDiff < -1) winner = "b";
       }
 
-      if (winner === "a") { row.classList.add("winner-a"); winsA++; }
-      else if (winner === "b") { row.classList.add("winner-b"); winsB++; }
-      else { row.classList.add("winner-tie"); ties++; }
+      if (winner === "a") {
+        row.classList.add("winner-a");
+        winsA++;
+      } else if (winner === "b") {
+        row.classList.add("winner-b");
+        winsB++;
+      } else {
+        row.classList.add("winner-tie");
+        ties++;
+      }
 
       row.classList.toggle("both-cannot", evalA.grade === "F" && evalB.grade === "F");
     });
 
-    $("#wins-a")!.textContent = String(winsA);
-    $("#wins-b")!.textContent = String(winsB);
-    $("#wins-tie")!.textContent = String(ties);
+    if ($("#wins-a")) $("#wins-a")!.textContent = String(winsA);
+    if ($("#wins-b")) $("#wins-b")!.textContent = String(winsB);
+    if ($("#wins-tie")) $("#wins-tie")!.textContent = String(ties);
   }
 
-  function renderSide(el: HTMLElement, eval_: { grade: Grade; score: number; toksPerSec: number | null; memPct: number | null; status: string }) {
+  function renderSide(
+    el: HTMLElement,
+    eval_: { grade: Grade; score: number; toksPerSec: number | null; memPct: number | null; status: string },
+  ) {
     const gradeInfo = GRADES[eval_.grade];
 
-    const gradeEl = el.querySelector<HTMLElement>("[data-grade]")!;
-    gradeEl.textContent = gradeInfo.label;
-    gradeEl.style.color = gradeInfo.color;
-
-    const scoreEl = el.querySelector<HTMLElement>("[data-score-num]")!;
-    scoreEl.textContent = `${eval_.score}/100`;
-    scoreEl.style.color = gradeInfo.color;
-
-    const toksEl = el.querySelector<HTMLElement>("[data-toks]")!;
-    if (eval_.toksPerSec !== null && eval_.status !== "cannot-run") {
-      toksEl.textContent = `~${eval_.toksPerSec} tok/s`;
-      if (eval_.toksPerSec >= 60) toksEl.style.color = "var(--color-can-run)";
-      else if (eval_.toksPerSec >= 30) toksEl.style.color = "var(--color-grade-a)";
-      else if (eval_.toksPerSec >= 15) toksEl.style.color = "var(--color-maybe)";
-      else if (eval_.toksPerSec >= 5) toksEl.style.color = "var(--color-grade-d)";
-      else toksEl.style.color = "var(--color-cannot-run)";
-    } else {
-      toksEl.textContent = eval_.status === "cannot-run" ? "—" : "? tok/s";
-      toksEl.style.color = "var(--color-muted)";
+    const gradeEl = el.querySelector<HTMLElement>("[data-grade]");
+    if (gradeEl) {
+      gradeEl.textContent = gradeInfo.label;
+      gradeEl.style.color = gradeInfo.color;
     }
 
-    const memEl = el.querySelector<HTMLElement>("[data-mem]")!;
-    if (eval_.memPct !== null) {
-      memEl.textContent = `${eval_.memPct}% mem`;
-      if (eval_.memPct > 100) memEl.style.color = "var(--color-cannot-run)";
-      else if (eval_.memPct > 75) memEl.style.color = "var(--color-maybe)";
-      else memEl.style.color = "var(--color-muted)";
-    } else {
-      memEl.textContent = "";
+    const scoreEl = el.querySelector<HTMLElement>("[data-score-num]");
+    if (scoreEl) {
+      scoreEl.textContent = `${eval_.score}/100`;
+      scoreEl.style.color = gradeInfo.color;
+    }
+
+    const toksEl = el.querySelector<HTMLElement>("[data-toks]");
+    if (toksEl) {
+      if (eval_.toksPerSec !== null && eval_.status !== "cannot-run") {
+        toksEl.textContent = `~${eval_.toksPerSec} tok/s`;
+        if (eval_.toksPerSec >= 60) toksEl.style.color = "var(--color-can-run)";
+        else if (eval_.toksPerSec >= 30) toksEl.style.color = "var(--color-grade-a)";
+        else if (eval_.toksPerSec >= 15) toksEl.style.color = "var(--color-maybe)";
+        else if (eval_.toksPerSec >= 5) toksEl.style.color = "var(--color-grade-d)";
+        else toksEl.style.color = "var(--color-cannot-run)";
+      } else {
+        toksEl.textContent = eval_.status === "cannot-run" ? "-" : "? tok/s";
+        toksEl.style.color = "var(--color-muted)";
+      }
+    }
+
+    const memEl = el.querySelector<HTMLElement>("[data-mem]");
+    if (memEl) {
+      if (eval_.memPct !== null) {
+        memEl.textContent = `${eval_.memPct}% mem`;
+        if (eval_.memPct > 100) memEl.style.color = "var(--color-cannot-run)";
+        else if (eval_.memPct > 75) memEl.style.color = "var(--color-maybe)";
+        else memEl.style.color = "var(--color-muted)";
+      } else {
+        memEl.textContent = "";
+      }
     }
   }
 
@@ -396,13 +432,16 @@ const sortedModels = [...models].sort(
       return direction === "desc" ? -cmp : cmp;
     });
 
-    rows.forEach(row => container.appendChild(row));
+    rows.forEach((row) => container.appendChild(row));
   }
 
-  function onChange() { runComparison(); syncToURL(); }
+  function onChange() {
+    runComparison();
+    syncToURL();
+  }
 
   function getAutoLabel(): string {
-    if (detectedHW) return `${getDisplayName(detectedHW)} (detected) ✱`;
+    if (detectedHW) return `${getDisplayName(detectedHW)} (detected)`;
     return "Detecting your device...";
   }
 
@@ -441,15 +480,10 @@ const sortedModels = [...models].sort(
     selectB.onchange = onChange;
 
     const sortSelect = $<HTMLSelectElement>("#sort-by");
-    if (sortSelect) {
-      sortSelect.onchange = sortRows;
-    }
+    if (sortSelect) sortSelect.onchange = sortRows;
 
-    if (detectedHW) {
-      runComparison();
-    } else {
-      initCompare();
-    }
+    if (detectedHW) runComparison();
+    else void initCompare();
   }
 
   document.addEventListener("astro:page-load", setupComparePage);
