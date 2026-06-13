@@ -73,6 +73,7 @@ const USE_CASE_ICONS: Record<string, any> = {
   multilingual: IconMultilingual,
   rag: IconSearch,
 }
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https://canirunaimodel.vercel.app"
 ---
 
 <Layout
@@ -87,15 +88,15 @@ const USE_CASE_ICONS: Record<string, any> = {
         {
           "@type": "BreadcrumbList",
           "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://canirun.ai" },
-            { "@type": "ListItem", "position": 2, "name": model.name, "item": `https://canirun.ai/model/${model.id}` }
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+            { "@type": "ListItem", "position": 2, "name": model.name, "item": `${siteUrl}/model/${model.id}` }
           ]
         },
         {
           "@type": "SoftwareApplication",
           "name": model.name,
           "description": model.description,
-          "url": `https://canirun.ai/model/${model.id}`,
+          "url": `${siteUrl}/model/${model.id}`,
           "applicationCategory": "DeveloperApplication",
           "operatingSystem": "Cross-platform",
           "author": { "@type": "Organization", "name": model.provider },

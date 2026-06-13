@@ -2,6 +2,8 @@
 import Layout from "@/layouts/Layout.astro";
 import NavHeader from "@/components/NavHeader.astro";
 import ModelListContent from "@/components/ModelListContent.astro";
+
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https://canirunaimodel.vercel.app";
 ---
 
 <Layout>
@@ -10,7 +12,7 @@ import ModelListContent from "@/components/ModelListContent.astro";
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "CanIRun.ai",
-      "url": "https://canirun.ai",
+      "url": siteUrl,
       "description": "Paste a Hugging Face model URL, detect your hardware, and estimate whether the model will run locally.",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web Browser",

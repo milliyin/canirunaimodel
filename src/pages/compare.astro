@@ -4,14 +4,25 @@ import NavHeader from "@/components/NavHeader.astro";
 import Footer from "@/components/Footer.astro";
 import { models } from "@/data/models";
 import IconGpu from "@/icons/gpu.svg";
+import IconHuggingFace from "@/icons/logo-huggingface.svg";
 
 const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBillions);
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https://canirunaimodel.vercel.app";
 ---
 
 <Layout
   title="Compare Devices for Hugging Face Models - CanIRun.ai"
-  description="Compare two devices side by side, then jump into checking any Hugging Face model URL on your hardware."
+  description="Compare Device A and Device B side by side across Hugging Face friendly model estimates without leaving the compare page."
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Compare Devices for Hugging Face Models",
+      "url": `${siteUrl}/compare`,
+      "description": "Compare Device A and Device B side by side across built-in AI model estimates and Hugging Face focused compatibility signals.",
+    })}></script>
+  </Fragment>
   <NavHeader />
   <main class="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
     <header class="mb-10 text-center">
@@ -19,7 +30,7 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
         Compare Devices
       </h1>
       <p class="mt-2 text-base text-muted">
-        Compare two machines against the library, then jump into any Hugging Face repo you want to check live.
+        Compare Device A and Device B against the model library in one place, without leaving this page.
       </p>
     </header>
 
@@ -125,8 +136,7 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
         {sortedModels.map((model) => {
           const q4 = model.quants.find((q) => q.name === "Q4_K_M") || model.quants[0];
           return (
-            <a
-              href={`/model/${model.id}`}
+            <article
               class="compare-row group"
               data-compare-id={model.id}
               data-sort-params={model.paramsBillions}
@@ -136,8 +146,27 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
               data-sort-vram={q4?.vramGB ?? 0}
             >
               <div class="col-model min-w-0">
-                <span class="truncate font-pixel text-sm text-primary transition-colors group-hover:text-accent">{model.name}</span>
-                <span class="ml-2 shrink-0 font-mono text-xs text-muted">{model.params}</span>
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span class="truncate font-pixel text-sm text-primary transition-colors group-hover:text-accent">{model.name}</span>
+                    <span class="shrink-0 font-mono text-xs text-muted">{model.params}</span>
+                  </div>
+                  <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
+                    <span>{model.provider}</span>
+                    <span class="text-edge/60">|</span>
+                    <span>Q4 ~{q4?.vramGB ?? "?"} GB</span>
+                    <span class="text-edge/60">|</span>
+                    <a
+                      href={model.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1 text-[#FFD21E] transition-opacity hover:opacity-80"
+                    >
+                      <IconHuggingFace class="h-3 w-3" />
+                      HF
+                    </a>
+                  </div>
+                </div>
               </div>
               <div class="col-device" data-side="a">
                 <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">-</span>
@@ -151,7 +180,7 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
                 <span data-toks class="font-mono text-xs text-muted"></span>
                 <span data-mem class="font-mono text-[11px] text-muted/50"></span>
               </div>
-            </a>
+            </article>
           );
         })}
       </div>
@@ -539,7 +568,7 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
     transition: background-color 0.1s;
   }
 
-  a.compare-row:hover {
+  .compare-row:hover {
     background-color: var(--color-surface-hover);
   }
 
@@ -610,7 +639,7 @@ const sortedModels = [...models].sort((a, b) => a.paramsBillions - b.paramsBilli
     overflow: hidden;
   }
 
-  #compare-rows > a:last-child {
+  #compare-rows > :last-child {
     border-bottom: none;
   }
 </style>

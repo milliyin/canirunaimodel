@@ -10,16 +10,21 @@ export const getStaticPaths: GetStaticPaths = () =>
 
 function getModelBadges(model: (typeof models)[number]) {
   const badges = [];
-  if (model.featured)
-    badges.push(badge('★ Popular', '#facc15', 'rgba(250,204,21,0.1)', 'rgba(250,204,21,0.3)'));
-  if (model.architecture === 'moe')
+  if (model.featured) {
+    badges.push(badge('Popular', '#facc15', 'rgba(250,204,21,0.1)', 'rgba(250,204,21,0.3)'));
+  }
+  if (model.architecture === 'moe') {
     badges.push(badge('MoE', '#3b82f6', 'rgba(59,130,246,0.1)', 'rgba(59,130,246,0.3)'));
-  if (model.tools)
+  }
+  if (model.tools) {
     badges.push(badge('Tool Use', '#a855f7', 'rgba(168,85,247,0.1)', 'rgba(168,85,247,0.3)'));
-  if (model.thinking)
+  }
+  if (model.thinking) {
     badges.push(badge('Thinking', '#38bdf8', 'rgba(56,189,248,0.1)', 'rgba(56,189,248,0.3)'));
-  if (model.useCase.includes('vision'))
+  }
+  if (model.useCase.includes('vision')) {
     badges.push(badge('Vision', '#fb7185', 'rgba(251,113,133,0.1)', 'rgba(251,113,133,0.3)'));
+  }
   return badges;
 }
 
@@ -32,9 +37,9 @@ export const GET: APIRoute = async ({ props }) => {
       : String(model.contextLength);
   const archStr = model.architecture === 'moe' ? 'MoE' : 'Dense';
   const vram = (model.quants.find((q) => q.name === 'Q4_K_M') || model.quants[0]).vramGB;
-  const displayName = model.name.length > 32 ? model.name.slice(0, 30) + '…' : model.name;
+  const displayName = model.name.length > 32 ? `${model.name.slice(0, 30)}...` : model.name;
   const displayDesc =
-    model.description.length > 120 ? model.description.slice(0, 117) + '...' : model.description;
+    model.description.length > 120 ? `${model.description.slice(0, 117)}...` : model.description;
 
   const modelBadges = getModelBadges(model);
 
@@ -117,7 +122,7 @@ export const GET: APIRoute = async ({ props }) => {
                       type: 'span',
                       props: {
                         style: { fontSize: 18, color: '#56565f' },
-                        children: 'canirun.ai',
+                        children: 'HF local compatibility',
                       },
                     },
                   ],
@@ -165,7 +170,7 @@ export const GET: APIRoute = async ({ props }) => {
                           color: '#8a8a97',
                           marginTop: modelBadges.length > 0 ? '14px' : '12px',
                         },
-                        children: `${model.provider} · ${model.params} · ${archStr} · ${contextStr} context`,
+                        children: `${model.provider} | ${model.params} | ${archStr} | ${contextStr} context`,
                       },
                     },
                     {
@@ -196,7 +201,7 @@ export const GET: APIRoute = async ({ props }) => {
                           fontSize: 16,
                           color: '#22c55e',
                         },
-                        children: `Q4_K_M · ${vram} GB VRAM`,
+                        children: `Q4_K_M | ${vram} GB VRAM`,
                       },
                     },
                   ],

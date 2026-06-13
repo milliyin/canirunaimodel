@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://canirun.ai/sitemap-index.xml
+Sitemap: https://canirunaimodel.vercel.app/sitemap-index.xml

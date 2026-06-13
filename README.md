@@ -4,56 +4,72 @@
 
 # canirunaimodel
 
-**Check whether your hardware can run AI models locally in seconds.**
+**Check whether your hardware can run Hugging Face models locally in seconds.**
 
-Your browser detects your CPU, RAM, and GPU automatically.\
+Paste a Hugging Face model URL or compare known models against your machine.\
 No installs, no benchmarks, no guesswork.
 
-[**Source Project**](https://github.com/midudev/canirun.ai)
-
+[**GitHub Repo**](https://github.com/milliyin/canirunaimodel)
 </div>
 
 ---
 
+## What it does
+
+`canirunaimodel` is a Hugging Face focused compatibility checker for local AI runs.
+
+It can:
+
+- detect your GPU, RAM, and browser-exposed hardware capabilities
+- estimate whether a Hugging Face model repo will fit locally
+- infer model size from repo metadata, dtype hints, and checkpoint sizes
+- compare two devices side by side against the built-in model library
+- explain the reasoning behind each verdict with memory and speed estimates
+
 ## Why
 
-Cloud AI APIs are expensive, rate-limited, and send your data to third parties. Running models locally gives you privacy, speed, and zero cost per token, but only if your hardware is up to the job.
+Running models locally gives you privacy, control, and no per-token API bill, but hardware limits are still the main blocker.
 
-`canirunaimodel` answers that question instantly. Open the site, let it detect your hardware, and see a personalized compatibility report for open-weight models with simple verdicts and quantization-aware estimates.
+This project helps answer practical questions like:
 
-## How It Works
+- Can my laptop run this Hugging Face repo?
+- Is this LoRA tiny or does it depend on a much bigger base model?
+- Which of these two devices handles a model better?
+- Is this a comfortable fit or a borderline one?
+
+## How it works
 
 ```text
-Browser APIs -> Hardware Detection -> Model Matching -> Personalized Grades
+Hugging Face URL -> Repo metadata -> Footprint estimate -> Browser hardware detection -> Verdict
 ```
 
-1. Hardware detection runs entirely client-side using WebGL, WebGPU, `navigator.deviceMemory`, and a lightweight CPU micro-benchmark.
-2. Each model's VRAM requirements are calculated across multiple quantization levels from parameter count.
-3. A scoring algorithm combines run status, estimated tokens/second, memory headroom, and model size into a letter grade.
-4. Results are displayed instantly.
+1. The app accepts a public Hugging Face model URL or repo id.
+2. It reads repo metadata such as architecture hints, safetensors stats, file sizes, tags, and adapter clues.
+3. In the browser, it detects your device using WebGL, WebGPU, and navigator memory hints.
+4. It estimates VRAM and RAM needs, then returns a verdict like `Runs great`, `Tight fit`, or `Too heavy`.
 
 ## Features
 
-- Zero-install hardware detection for CPU, RAM, GPU, VRAM, and memory bandwidth
-- Large built-in model catalog with quantization-aware estimates
-- Letter-grade verdicts from strong fit to too heavy
-- Tokens/second estimates based on memory bandwidth
-- Filters for task, provider, and architecture
-- Model detail pages with install links and quant tables
-- Astro-based static site with generated metadata and OG images
+- Hugging Face URL based model checks
+- Browser-side hardware detection
+- VRAM and RAM estimation from model metadata
+- Fallback parameter estimation from checkpoint size when metadata is incomplete
+- Better handling for adapters and LoRA-style repos
+- Side-by-side device comparison page
+- SEO-ready Astro site with canonical tags, sitemap support, and social metadata
 
-## Getting Started
+## Getting started
 
 **Prerequisites:** [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io)
 
 ```bash
-git clone https://github.com/<your-account>/canirunaimodel.git
+git clone https://github.com/milliyin/canirunaimodel.git
 cd canirunaimodel
 pnpm install
 pnpm dev
 ```
 
-Open [localhost:4321](http://localhost:4321) to see the site.
+Open [http://localhost:4321](http://localhost:4321).
 
 ## Commands
 
@@ -62,9 +78,10 @@ Open [localhost:4321](http://localhost:4321) to see the site.
 | `pnpm dev` | Start the dev server |
 | `pnpm build` | Build the production site |
 | `pnpm preview` | Preview the production build locally |
-| `pnpm test` | Run the test suite |
+| `pnpm scrape` | Refresh scraped model metadata |
+| `pnpm fetch:readmes` | Refresh imported readme content |
 
-## Project Structure
+## Project structure
 
 ```text
 src/
@@ -74,9 +91,21 @@ scripts/
 tests/
 ```
 
+## SEO notes
+
+The site now targets this project instead of the old upstream domain. For production SEO, set:
+
+```bash
+PUBLIC_SITE_URL=https://your-real-domain.example
+```
+
+That keeps canonical URLs, sitemap generation, Open Graph URLs, and structured data aligned with the deployed site.
+
 ## Credits
 
-Based on [midudev/canirun.ai](https://github.com/midudev/canirun.ai).
+Originally inspired by [midudev/canirun.ai](https://github.com/midudev/canirun.ai), then reshaped here around Hugging Face model compatibility checks.
+
+Made by [milliyin](https://milliyin.dev/).
 
 ## License
 

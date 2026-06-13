@@ -13,6 +13,7 @@ export function getStaticPaths() {
 }
 
 const { deviceKey, deviceName } = Astro.props;
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https://canirunaimodel.vercel.app";
 ---
 
 <Layout
@@ -24,7 +25,7 @@ const { deviceKey, deviceName } = Astro.props;
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": `CanIRun.ai — ${deviceName}`,
-      "url": `https://canirun.ai/device/${Astro.params.id}`,
+      "url": `${siteUrl}/device/${Astro.params.id}`,
       "description": `Find out which AI models your ${deviceName} can run locally.`,
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Web Browser",

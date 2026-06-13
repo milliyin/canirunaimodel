@@ -511,3 +511,24 @@ body {
 - [Schema.org](https://schema.org/)
 - [Core Web Vitals](../core-web-vitals/SKILL.md)
 - [Web Quality Audit](../web-quality-audit/SKILL.md)
+
+---
+
+## Project notes: canirunaimodel
+
+When applying this skill inside `canirunaimodel`, also check these repo-specific rules:
+
+- Canonical URLs, OG URLs, and sitemap generation must use the current deployed domain, not the upstream `canirun.ai` domain.
+- Prefer a configurable site URL through `PUBLIC_SITE_URL` or `SITE_URL` so preview and production environments do not leak the wrong canonical host.
+- `public/robots.txt` must point to this project's sitemap, not the upstream project.
+- Hugging Face pages should mention primary terms naturally: `Hugging Face model`, `local model`, `VRAM`, `RAM`, `GPU`, and `compatibility`.
+- Compare pages should keep the comparison workflow on-page when possible instead of forcing users into separate detail pages for basic device-vs-device decisions.
+- Structured data should use the current site host for homepage, model pages, device pages, and compare pages.
+
+Quick repo checklist:
+
+- [ ] `astro.config.mjs` site URL matches the deployed project
+- [ ] `robots.txt` sitemap host matches the deployed project
+- [ ] `Layout.astro` canonical and social tags resolve to the same host
+- [ ] JSON-LD URLs do not point to the old upstream domain
+- [ ] Compare page title and description describe device-vs-device Hugging Face comparisons clearly

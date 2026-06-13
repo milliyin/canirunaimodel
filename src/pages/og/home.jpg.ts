@@ -91,7 +91,7 @@ export const GET: APIRoute = async () => {
                 type: 'div',
                 props: {
                   style: { fontSize: 20, color: '#56565f', marginTop: '24px' },
-                  children: 'canirun.ai — GPU, CPU, and RAM analysis in your browser',
+                  children: 'Hugging Face model checks from your browser hardware',
                 },
               },
             ],
