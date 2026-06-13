@@ -43,6 +43,27 @@ const otherModels = sortedModels.filter((m) => !m.featured)
 
 const providers = [...new Set(models.map((m) => m.provider))].sort()
 
+function slugifySearchPart(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+function makeSearchText(model: (typeof models)[number]): string {
+  const providerSlug = slugifySearchPart(model.provider)
+  const nameSlug = slugifySearchPart(model.name)
+  return [
+    model.name,
+    model.id,
+    model.provider,
+    `${model.provider} ${model.name}`,
+    `${providerSlug}/${nameSlug}`,
+    `${providerSlug} ${nameSlug}`,
+    ...model.useCase,
+  ].join(" ")
+}
+
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return ""
   const now = new Date()
@@ -352,6 +373,7 @@ function timeAgo(dateStr: string | null): string {
           <article
             data-model-id={model.id}
             data-model-name={model.name}
+            data-search-text={makeSearchText(model)}
             data-quants={JSON.stringify(model.quants)}
             data-params={model.paramsBillions}
             data-arch={model.architecture}
@@ -596,6 +618,7 @@ function timeAgo(dateStr: string | null): string {
           <article
             data-model-id={model.id}
             data-model-name={model.name}
+            data-search-text={makeSearchText(model)}
             data-quants={JSON.stringify(model.quants)}
             data-params={model.paramsBillions}
             data-arch={model.architecture}
@@ -824,6 +847,13 @@ function timeAgo(dateStr: string | null): string {
     <p class="mt-2 text-base text-muted/40">
       Try adjusting your search or filters
     </p>
+    <a
+      id="hf-search-link"
+      href="/check"
+      class="mt-4 hidden inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 font-mono text-sm text-accent transition-colors hover:border-accent/50 hover:bg-accent/15"
+    >
+      Check this on Hugging Face
+    </a>
     <button
       id="reset-filters"
       class="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-edge/60 bg-surface-raised px-4 py-2 font-mono text-sm text-secondary transition-colors hover:border-accent/30 hover:bg-surface-hover hover:text-primary cursor-pointer"
@@ -1446,8 +1476,36 @@ function timeAgo(dateStr: string | null): string {
   let activeLicenseFilter = "all"
   let searchQuery = ""
 
+  function looksLikeHfSearch(query: string) {
+    return query.includes("/") || query.includes("huggingface.co/")
+  }
+
+  function normalizeSearchText(value: string) {
+    return value
+      .toLowerCase()
+      .replace(/https?:\/\/(www\.)?huggingface\.co\//g, "")
+      .replace(/[^a-z0-9/]+/g, " ")
+      .trim()
+  }
+
+  function updateHfSearchFallback(totalVisible: number) {
+    const link = $<HTMLAnchorElement>("#hf-search-link")
+    if (!link) return
+
+    if (totalVisible === 0 && searchQuery && looksLikeHfSearch(searchQuery)) {
+      const raw = searchQuery.trim()
+      const target = raw.includes("huggingface.co/") ? raw : `https://huggingface.co/${raw.replace(/^\/+/, "")}`
+      link.href = `/check?url=${encodeURIComponent(target)}`
+      link.classList.remove("hidden")
+      return
+    }
+
+    link.classList.add("hidden")
+    link.href = "/check"
+  }
+
   function applyFilters() {
-    const query = searchQuery.toLowerCase()
+    const query = normalizeSearchText(searchQuery)
     let featuredVisible = 0
     let restVisible = 0
 
@@ -1457,13 +1515,13 @@ function timeAgo(dateStr: string | null): string {
       const grade = card.dataset.grade || "?"
       const uses = card.dataset.uses || ""
       const provider = card.dataset.provider || ""
-      const name = (card.dataset.modelName || "").toLowerCase()
+      const searchText = normalizeSearchText(card.dataset.searchText || card.dataset.modelName || "")
       const isFeatured = card.dataset.featured === "true"
       const license = card.dataset.license || ""
       const isCommercial = card.dataset.commercial === "true"
       let show = true
 
-      if (query && !name.includes(query)) show = false
+      if (query && !searchText.includes(query)) show = false
       if (activeStatusFilter === "featured") {
         if (!isFeatured) show = false
       } else if (activeStatusFilter === "can-run") {
@@ -1496,6 +1554,7 @@ function timeAgo(dateStr: string | null): string {
     })
 
     const totalVisible = featuredVisible + restVisible
+    updateHfSearchFallback(totalVisible)
     const divider = $("#rest-divider")
     const featuredGrid = $("#models-grid")
     const restGrid = $("#models-grid-rest")
