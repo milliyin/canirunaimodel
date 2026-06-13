@@ -66,7 +66,7 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
   if (!parsed) return null;
 
   const repoInfo = await fetchJson<HFModelInfo>(
-    `https://huggingface.co/api/models/${encodeURIComponent(parsed.repoId)}`,
+    `https://huggingface.co/api/models/${parsed.repoId}`,
   );
   if (!repoInfo) return null;
 
