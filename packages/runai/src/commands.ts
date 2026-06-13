@@ -1,0 +1,17 @@
+export {
+  handleChat,
+  handleDoctor,
+  handleRecommend,
+  handleHome,
+  handleRun,
+  handleShow,
+  handleBench,
+  handleImport,
+  handleDaemon,
+  handleStop,
+  handleBrowse,
+  handlePull,
+  handleServe,
+  handleList,
+  handleDeleteModels,
+} from "./commands/index";
