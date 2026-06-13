@@ -1,3 +1,15 @@
+---
+title: canirunaimodel
+emoji: 🤖
+colorFrom: yellow
+colorTo: indigo
+sdk: gradio
+sdk_version: "5.34.0"
+python_version: "3.10"
+app_file: app.py
+pinned: false
+---
+
 # Gradio wrapper
 
 This folder contains a small Gradio app that embeds the live site:

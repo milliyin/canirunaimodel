@@ -113,13 +113,17 @@ gradio/
 
 ## SEO notes
 
-The site now targets this project instead of the old upstream domain. For production SEO, set:
+The live site is currently deployed at:
+
+- `https://canirunaimodel.vercel.app/`
+
+Set:
 
 ```bash
-PUBLIC_SITE_URL=https://your-real-domain.example
+PUBLIC_SITE_URL=https://canirunaimodel.vercel.app
 ```
 
-That keeps canonical URLs, sitemap generation, Open Graph URLs, and structured data aligned with the deployed site.
+If you later move to a custom domain, update `PUBLIC_SITE_URL` to that final domain so canonical URLs, sitemap generation, Open Graph URLs, and structured data stay aligned.
 
 ## Credits
 
