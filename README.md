@@ -6,62 +6,93 @@
 
 **Check whether your hardware can run Hugging Face models locally in seconds.**
 
-Paste a Hugging Face model URL or compare known models against your machine.\
-No installs, no benchmarks, no guesswork.
+Paste a Hugging Face model URL, estimate VRAM and RAM needs, compare devices, and get a practical local-run verdict without installing the model first.
 
-[**GitHub Repo**](https://github.com/milliyin/canirunaimodel)
+[Live site](https://canirunaimodel.vercel.app/) · [GitHub repo](https://github.com/milliyin/canirunaimodel)
 </div>
 
 ---
 
+## Overview
+
+`canirunaimodel` is a Hugging Face focused compatibility checker built from the idea behind `canirun.ai`, but reshaped around modern model repos, adapters, and browser-based hardware detection.
+
+The goal is simple:
+
+- paste a Hugging Face repo URL
+- detect the current device in the browser
+- estimate the model footprint
+- decide whether the model should run well, barely fit, or be too heavy
+
 ## What it does
 
-`canirunaimodel` is a Hugging Face focused compatibility checker for local AI runs.
+- Accepts public Hugging Face model URLs and repo ids
+- Fetches repo metadata and model hints from Hugging Face
+- Detects browser-visible hardware such as GPU and RAM
+- Estimates VRAM and RAM needs from parameter counts, tensor type, and file sizes
+- Handles incomplete metadata with fallback estimation from checkpoint sizes
+- Recognizes adapter and LoRA-style repos better than a simple raw file-size check
+- Compares two devices against the same Hugging Face model on one page
+- Includes a built-in model library for quick browsing and comparison
 
-It can:
+## Why this exists
 
-- detect your GPU, RAM, and browser-exposed hardware capabilities
-- estimate whether a Hugging Face model repo will fit locally
-- infer model size from repo metadata, dtype hints, and checkpoint sizes
-- compare two devices side by side against the built-in model library
-- explain the reasoning behind each verdict with memory and speed estimates
+Running models locally is great for privacy, control, offline use, and avoiding API costs, but most people still get blocked by one question:
 
-## Why
+**Will this model actually run on my machine?**
 
-Running models locally gives you privacy, control, and no per-token API bill, but hardware limits are still the main blocker.
+This project tries to answer that before download time.
 
-This project helps answer practical questions like:
+Useful questions it helps with:
 
-- Can my laptop run this Hugging Face repo?
-- Is this LoRA tiny or does it depend on a much bigger base model?
-- Which of these two devices handles a model better?
-- Is this a comfortable fit or a borderline one?
+- Can my laptop run this Hugging Face model?
+- Is this repo a small adapter or a much larger full model?
+- Which of two devices is the better fit for the same model?
+- Is the fit comfortable, tight, or unrealistic?
 
 ## How it works
 
 ```text
-Hugging Face URL -> Repo metadata -> Footprint estimate -> Browser hardware detection -> Verdict
+Hugging Face URL
+  -> repo metadata
+  -> parameter + tensor + file-size estimation
+  -> browser hardware detection
+  -> memory + speed scoring
+  -> verdict
 ```
 
-1. The app accepts a public Hugging Face model URL or repo id.
-2. It reads repo metadata such as architecture hints, safetensors stats, file sizes, tags, and adapter clues.
-3. In the browser, it detects your device using WebGL, WebGPU, and navigator memory hints.
-4. It estimates VRAM and RAM needs, then returns a verdict like `Runs great`, `Tight fit`, or `Too heavy`.
+High-level flow:
 
-## Features
+1. The app accepts a Hugging Face repo URL or repo id.
+2. It reads model metadata such as architecture hints, safetensors stats, config values, tags, and file sizes.
+3. In the browser, it detects device capabilities using WebGL, WebGPU, and memory hints.
+4. It estimates required VRAM and RAM.
+5. It returns a verdict such as `Runs great`, `Tight fit`, or `Too heavy`.
 
-- Hugging Face URL based model checks
-- Browser-side hardware detection
-- VRAM and RAM estimation from model metadata
-- Fallback parameter estimation from checkpoint size when metadata is incomplete
-- Better handling for adapters and LoRA-style repos
-- Side-by-side device comparison page
-- Gradio companion app for the live deployment
-- SEO-ready Astro site with canonical tags, sitemap support, and social metadata
+## Main features
 
-## Getting started
+- `Check` page for any Hugging Face repo
+- `Compare` page for Device A vs Device B on the same model
+- Built-in library browsing when you do not want to paste a URL
+- Fallback heuristics for repos with partial metadata
+- Live deployment ready for SEO, Open Graph, sitemap, and canonical URLs
 
-**Prerequisites:** [Node.js](https://nodejs.org) 18+ and [pnpm](https://pnpm.io)
+## Tech stack
+
+- [Astro](https://astro.build/)
+- TypeScript
+- Browser hardware detection via Web APIs
+- Hugging Face model metadata lookup
+- Vercel for deployment
+
+## Local development
+
+Prerequisites:
+
+- [Node.js](https://nodejs.org/) 18+
+- [pnpm](https://pnpm.io/)
+
+Run locally:
 
 ```bash
 git clone https://github.com/milliyin/canirunaimodel.git
@@ -70,11 +101,27 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:4321](http://localhost:4321).
+Then open:
 
-## Gradio app
+- `http://localhost:4321`
 
-A small Python Gradio wrapper lives in [`gradio/`](./gradio). It points at the live deployment:
+## Commands
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Start the Astro dev server |
+| `pnpm build` | Build the production site |
+| `pnpm preview` | Preview the production build locally |
+| `pnpm scrape` | Refresh scraped model metadata |
+| `pnpm fetch:readmes` | Refresh imported README content |
+
+## Gradio wrappers
+
+This repo currently has two Gradio-related setups:
+
+### `gradio/`
+
+A tracked Python Gradio wrapper intended for sharing or publishing. It points at the live deployment:
 
 - `https://canirunaimodel.vercel.app/`
 
@@ -88,46 +135,45 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Then open the local Gradio URL shown in your terminal.
+### `gradio-fullscreen/`
 
-## Commands
+A local-only fullscreen wrapper for:
 
-| Command | Action |
-|---|---|
-| `pnpm dev` | Start the dev server |
-| `pnpm build` | Build the production site |
-| `pnpm preview` | Preview the production build locally |
-| `pnpm scrape` | Refresh scraped model metadata |
-| `pnpm fetch:readmes` | Refresh imported readme content |
+- `https://canirunaimodel.vercel.app/check`
+
+It is intentionally gitignored and keeps the UI minimal:
+
+- a small clickable header link
+- the `/check` page embedded fullscreen
 
 ## Project structure
 
 ```text
-src/
-packages/
-public/
-scripts/
-tests/
-gradio/
+src/        Astro pages, components, layouts, and core app logic
+public/     Static assets such as favicon and images
+packages/   Internal packages used by the project
+scripts/    Data and utility scripts
+tests/      Test files and related fixtures
+gradio/     Tracked Gradio wrapper for the live site
 ```
 
-## SEO notes
+## Deployment and SEO
 
 The live site is currently deployed at:
 
 - `https://canirunaimodel.vercel.app/`
 
-Set:
+For production, set:
 
 ```bash
 PUBLIC_SITE_URL=https://canirunaimodel.vercel.app
 ```
 
-If you later move to a custom domain, update `PUBLIC_SITE_URL` to that final domain so canonical URLs, sitemap generation, Open Graph URLs, and structured data stay aligned.
+If you later move to a custom domain, update `PUBLIC_SITE_URL` so canonical URLs, sitemap generation, Open Graph URLs, and structured data all stay aligned with the real public domain.
 
 ## Credits
 
-Originally inspired by [midudev/canirun.ai](https://github.com/midudev/canirun.ai), then reshaped here around Hugging Face model compatibility checks.
+Originally inspired by [midudev/canirun.ai](https://github.com/midudev/canirun.ai), then expanded here around Hugging Face model compatibility checks and device-vs-device comparisons.
 
 Made by [milliyin](https://milliyin.dev/).
 

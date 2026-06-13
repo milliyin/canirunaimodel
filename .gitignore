@@ -26,3 +26,4 @@ pnpm-debug.log*
 .pnpm-home/
 .codex-plugins/
 .agents/plugins/
+gradio-fullscreen/
