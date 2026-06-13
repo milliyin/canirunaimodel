@@ -862,6 +862,27 @@ function timeAgo(dateStr: string | null): string {
     </button>
   </div>
 
+  <div id="hf-search-result" class="hidden py-10">
+    <a
+      id="hf-search-card"
+      href="/check"
+      class="group block rounded-2xl border border-accent/30 bg-accent/10 p-5 transition-colors hover:border-accent/50 hover:bg-accent/15"
+    >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-accent/80">Hugging Face repo</p>
+          <h3 id="hf-search-card-title" class="mt-2 truncate font-pixel text-xl text-primary">Check this repo</h3>
+          <p id="hf-search-card-subtitle" class="mt-2 text-sm leading-6 text-secondary">
+            Open the HF checker to fetch live metadata, estimate memory, and get a local run verdict for this repo.
+          </p>
+        </div>
+        <span class="inline-flex shrink-0 items-center rounded-xl border border-accent/40 bg-surface/40 px-4 py-2 font-mono text-sm text-accent transition-colors group-hover:border-accent/60">
+          Open HF check
+        </span>
+      </div>
+    </a>
+  </div>
+
   <Footer class="mt-20">
     <p class="text-[13px] text-muted/70">
       Data sourced from <a
@@ -1490,18 +1511,32 @@ function timeAgo(dateStr: string | null): string {
 
   function updateHfSearchFallback(totalVisible: number) {
     const link = $<HTMLAnchorElement>("#hf-search-link")
-    if (!link) return
+    const cardWrap = $("#hf-search-result")
+    const cardLink = $<HTMLAnchorElement>("#hf-search-card")
+    const cardTitle = $("#hf-search-card-title")
+    const cardSubtitle = $("#hf-search-card-subtitle")
+    if (!link || !cardWrap || !cardLink || !cardTitle || !cardSubtitle) return
 
     if (totalVisible === 0 && searchQuery && looksLikeHfSearch(searchQuery)) {
       const raw = searchQuery.trim()
       const target = raw.includes("huggingface.co/") ? raw : `https://huggingface.co/${raw.replace(/^\/+/, "")}`
-      link.href = `/check?url=${encodeURIComponent(target)}`
+      const checkerHref = `/check?url=${encodeURIComponent(target)}`
+      const repoLabel = raw.replace(/^https?:\/\/(www\.)?huggingface\.co\//i, "").replace(/^\/+/, "")
+      link.href = checkerHref
       link.classList.remove("hidden")
+      cardLink.href = checkerHref
+      cardTitle.textContent = repoLabel || "Check this repo"
+      cardSubtitle.textContent = `Fetch live Hugging Face metadata for ${repoLabel || "this repo"}, estimate VRAM and RAM, and see if it can run on your machine.`
+      cardWrap.classList.remove("hidden")
       return
     }
 
     link.classList.add("hidden")
     link.href = "/check"
+    cardWrap.classList.add("hidden")
+    cardLink.href = "/check"
+    cardTitle.textContent = "Check this repo"
+    cardSubtitle.textContent = "Open the HF checker to fetch live metadata, estimate memory, and get a local run verdict for this repo."
   }
 
   function applyFilters() {
