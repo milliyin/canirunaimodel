@@ -2,26 +2,52 @@
 import Layout from "@/layouts/Layout.astro";
 import NavHeader from "@/components/NavHeader.astro";
 import Footer from "@/components/Footer.astro";
+import IconSearch from "@/icons/search.svg";
+import IconArrowFlow from "@/icons/arrow-flow.svg";
+import IconGpu from "@/icons/gpu.svg";
+import IconBandwidth from "@/icons/bandwidth.svg";
 
-const codeHF = `const repoId = "google/gemma-3-4b-it";
-const res = await fetch(\`https://huggingface.co/api/models/\${repoId}\`);
-const data = await res.json();
+const codeWebGL = `<span class="text-muted">// Get GPU renderer string</span>
+<span class="text-accent">const</span> canvas = document.createElement(<span class="text-can-run">"canvas"</span>);
+<span class="text-accent">const</span> gl = canvas.getContext(<span class="text-can-run">"webgl2"</span>);
+<span class="text-accent">const</span> ext = gl.getExtension(<span class="text-can-run">"WEBGL_debug_renderer_info"</span>);
+<span class="text-accent">const</span> gpu = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);`;
 
-// data.safetensors
-// data.usedStorage
-// data.tags
-// data.siblings`;
+const codeWebGPU = `<span class="text-accent">const</span> adapter = <span class="text-accent">await</span> navigator.gpu.requestAdapter();
+<span class="text-accent">const</span> info = adapter.info;`;
 
-const codeBrowser = `const adapter = await navigator.gpu?.requestAdapter();
-const gpuName = adapter?.info?.device;
-const ramGB = navigator.deviceMemory;
-const cores = navigator.hardwareConcurrency;`;
+const codeNavigator = `<span class="text-accent">const</span> cores = navigator.hardwareConcurrency;
+<span class="text-accent">const</span> ram = navigator.deviceMemory;`;
 
-const codeVerdict = `estimate = combine(hfMetadata, browserHardware);
+const codeGPUDB = `<span class="text-muted">// Example entries from the GPU database</span>
+<span class="text-accent">const</span> GPU_DB = {
+  <span class="text-can-run">"RTX 4090"</span>: { vram: <span class="text-primary">24</span>, bw: <span class="text-primary">1008</span> },
+  <span class="text-can-run">"RTX 4060"</span>: { vram: <span class="text-primary">8</span>, bw: <span class="text-primary">272</span> },
+};`;
 
-if (estimate.memoryUse < safeHeadroom) return "Runs great";
-if (estimate.memoryUse < maxBudget) return "Tight fit";
-return "Too heavy";`;
+const codeQuants = `<span class="text-muted">// Adds overhead for cache + runtime</span>
+<span class="text-accent">const</span> RUNTIME_OVERHEAD = <span class="text-primary">0.5</span>;
+
+<span class="text-accent">function</span> makeQuants(paramsBillions) {
+  <span class="text-accent">return</span> [
+    { name: <span class="text-can-run">"Q4_K_M"</span>, vram: paramsBillions * <span class="text-primary">0.55</span> + RUNTIME_OVERHEAD },
+    { name: <span class="text-can-run">"F16"</span>, vram: paramsBillions * <span class="text-primary">1.85</span> + RUNTIME_OVERHEAD },
+  ];
+}`;
+
+const codeSpeed = `<span class="text-accent">const</span> efficiency = isAppleSilicon ? <span class="text-primary">0.65</span> : <span class="text-primary">0.70</span>;
+<span class="text-accent">const</span> toksPerSec = (bandwidthGBs / modelVRAM) * efficiency;`;
+
+const codeMemory = `<span class="text-accent">const</span> memPct = (modelVRAM / totalMemory) * <span class="text-primary">100</span>;`;
+
+const codeQuality = `<span class="text-accent">const</span> qualityBonus = Math.min(<span class="text-primary">15</span>, Math.log2(paramsBillions + <span class="text-primary">1</span>) * <span class="text-primary">2.5</span>);`;
+
+const codeHF = `<span class="text-muted">// Fetch model stats from Hugging Face API</span>
+<span class="text-accent">const</span> repoId = <span class="text-can-run">"google/gemma-3-4b-it"</span>;
+<span class="text-accent">const</span> res = <span class="text-accent">await</span> fetch(
+  <span class="text-can-run">\`https://huggingface.co/api/models/\${repoId}\`</span>
+);
+<span class="text-accent">const</span> data = <span class="text-accent">await</span> res.json();`;
 ---
 
 <Layout
@@ -33,66 +59,259 @@ return "Too heavy";`;
     <header class="mb-10 text-center">
       <h1 class="font-pixel text-2xl tracking-tight text-accent sm:text-3xl">Why</h1>
       <p class="mt-2 text-base text-muted">
-        How we detect your hardware, read Hugging Face metadata, and turn that into local run estimates.
+        How we detect your hardware, score models, and turn Hugging Face metadata into local run estimates.
       </p>
     </header>
 
     <div class="space-y-12">
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">How the new checker works</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">How it works</h2>
         <p class="text-base leading-relaxed text-secondary">
-          The new flow starts from a Hugging Face model URL. We parse the repo id, fetch metadata from Hugging Face, estimate the model footprint, detect your hardware in the browser, and then compare both sides to produce a verdict.
+          CanIRun.ai runs mostly in your browser. We detect your GPU, CPU, and memory, then combine that with model metadata to estimate whether something will run locally and how comfortably. The newer Hugging Face flow starts from a public repo URL, fetches repo metadata, and folds that into the same scoring pipeline.
         </p>
-      </section>
 
-      <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">1. Read the HF repo</h2>
-        <p class="mb-3 text-base leading-relaxed text-secondary">
-          We call the Hugging Face API and inspect whatever signals the repo exposes: tags, architecture, safetensors metadata, checkpoint filenames, used storage, and adapter hints.
-        </p>
-        <div class="overflow-x-auto rounded-md bg-surface p-3">
-          <pre class="font-mono text-[13px] leading-relaxed text-secondary">{codeHF}</pre>
+        <div class="mt-4 rounded-lg border border-maybe/30 bg-maybe/5 p-4">
+          <p class="text-sm leading-relaxed text-secondary">
+            <span class="font-pixel text-xs text-maybe">IMPORTANT</span> All results are estimates. Browser APIs give limited hardware information, and public model repos are often incomplete or inconsistent. Use the verdicts as a guide, not a guarantee.
+          </p>
+        </div>
+
+        <div class="mt-4 rounded-lg border border-edge bg-surface-card p-5">
+          <div class="flex items-center justify-between gap-2 sm:gap-4">
+            <div class="flex flex-col items-center gap-2">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10">
+                <IconSearch class="h-5 w-5 text-accent" stroke-width="1.5" />
+              </div>
+              <span class="font-mono text-xs text-muted">Detect</span>
+            </div>
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <div class="flex flex-col items-center gap-2">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10">
+                <IconGpu class="h-5 w-5 text-accent" />
+              </div>
+              <span class="font-mono text-xs text-muted">Match GPU</span>
+            </div>
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <div class="flex flex-col items-center gap-2">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10">
+                <IconBandwidth class="h-5 w-5 text-accent" />
+              </div>
+              <span class="font-mono text-xs text-muted">Score</span>
+            </div>
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <div class="flex flex-col items-center gap-2">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-can-run/30 bg-can-run/10 font-pixel text-lg text-can-run">
+                S
+              </div>
+              <span class="font-mono text-xs text-muted">Grade</span>
+            </div>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">2. Detect your hardware</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">Read the HF repo</h2>
         <p class="mb-3 text-base leading-relaxed text-secondary">
-          Hardware detection happens in the browser. We use browser APIs to gather GPU identity, RAM hints, and CPU details, then map those into memory and bandwidth estimates.
+          For Hugging Face checks, we parse the repo id, call the public API, and inspect whatever signals the repo exposes: tags, architecture, safetensors metadata, checkpoint filenames, storage totals, and adapter hints.
         </p>
         <div class="overflow-x-auto rounded-md bg-surface p-3">
-          <pre class="font-mono text-[13px] leading-relaxed text-secondary">{codeBrowser}</pre>
+          <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeHF} />
         </div>
       </section>
 
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">3. Estimate memory and verdict</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">Hardware detection</h2>
         <p class="mb-3 text-base leading-relaxed text-secondary">
-          After we infer the likely weight format and model size, we estimate VRAM and RAM needs. Then we compare that to your detected machine and translate the result into a simple verdict.
+          We use browser APIs to fingerprint your hardware. No extensions or installs needed.
         </p>
-        <div class="overflow-x-auto rounded-md bg-surface p-3">
-          <pre class="font-mono text-[13px] leading-relaxed text-secondary">{codeVerdict}</pre>
+
+        <div class="space-y-4">
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">WebGL - GPU identification</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              We create a hidden WebGL canvas and query the renderer string to get the GPU name and vendor.
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeWebGL} />
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">WebGPU - Architecture info</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              If the browser supports WebGPU, we request an adapter to get extra device and architecture details.
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeWebGPU} />
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">Navigator - CPU and RAM</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              We use browser hints like CPU core count and approximate device memory, plus a small runtime benchmark where needed.
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeNavigator} />
+            </div>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">Why some repos are harder</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">GPU database</h2>
         <p class="text-base leading-relaxed text-secondary">
-          Not every Hugging Face repo is equally descriptive. Some repos expose exact safetensors parameter counts. Others only expose a PyTorch checkpoint, a TensorFlow SavedModel, or an adapter without the base weights. In those cases we fall back to file size and structural hints.
+          Once we identify your GPU, we look it up in a built-in database of GPUs and Apple Silicon chips. Each entry contains the VRAM capacity and memory bandwidth, the two numbers that matter most for running models locally.
+        </p>
+        <div class="mt-3 overflow-x-auto rounded-md bg-surface p-3">
+          <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeGPUDB} />
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">VRAM requirements</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          Each model has estimated memory requirements per format or quantization. The basic idea is simple: more parameters and heavier dtypes mean more memory.
+        </p>
+        <div class="rounded-lg border border-accent/20 bg-accent/5 p-4">
+          <p class="text-center font-mono text-sm text-primary">
+            VRAM (GB) = Parameters x Bits per weight / 8 + Overhead
+          </p>
+        </div>
+        <div class="mt-3 overflow-x-auto rounded-md bg-surface p-3">
+          <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeQuants} />
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Scoring algorithm</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          The final score combines speed, memory headroom, and a small quality bonus to answer a practical question: how well will this run on your machine?
+        </p>
+
+        <div class="space-y-4">
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">Speed score</h3>
+            <p class="mb-2 text-sm leading-relaxed text-secondary">
+              Estimated tokens per second based on your memory bandwidth and the model footprint:
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeSpeed} />
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">Memory headroom</h3>
+            <p class="mb-2 text-sm leading-relaxed text-secondary">
+              How much of your available memory the model consumes:
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeMemory} />
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">Quality bonus</h3>
+            <p class="text-sm leading-relaxed text-secondary">
+              A small bonus for larger models, capped so it never dominates the score:
+            </p>
+            <div class="mt-2 overflow-x-auto rounded-md bg-surface p-3">
+              <pre class="font-mono text-[13px] leading-relaxed text-secondary" set:html={codeQuality} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Grade scale</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          The score maps to a verdict:
+        </p>
+        <div class="overflow-x-auto rounded-lg border border-edge">
+          <table class="w-full text-base">
+            <thead>
+              <tr class="border-b border-edge bg-surface-card text-left text-xs uppercase tracking-wider text-muted">
+                <th class="px-4 py-2.5">Status</th>
+                <th class="px-4 py-2.5">Meaning</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm">
+              <tr class="border-b border-edge/50 bg-surface-card/50">
+                <td class="px-4 py-2 font-mono text-can-run">Runs great</td>
+                <td class="px-4 py-2 text-secondary">Fast inference, healthy memory headroom</td>
+              </tr>
+              <tr class="border-b border-edge/50">
+                <td class="px-4 py-2 font-mono text-maybe">Tight fit</td>
+                <td class="px-4 py-2 text-secondary">May run, but with little room to spare</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-2 font-mono text-cannot-run">Too heavy</td>
+                <td class="px-4 py-2 text-secondary">Likely exceeds what the setup can handle comfortably</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Fit classification</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          Before scoring, we classify the model based on whether it fits comfortably, barely fits, or clearly exceeds available memory.
         </p>
       </section>
 
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">Why Hugging Face is now the center</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">Tokens/s estimation</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          We estimate inference speed using a bandwidth-bound model. Inference is often limited more by reading weights from memory than by raw compute.
+        </p>
+        <div class="rounded-lg border border-accent/20 bg-accent/5 p-4">
+          <p class="text-center font-mono text-sm text-primary">
+            tok/s ~= Memory bandwidth / Model VRAM x Efficiency
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Data sources</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          Model information is gathered from multiple sources and curated or inferred carefully:
+        </p>
+        <div class="space-y-2 font-mono text-sm">
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <div>
+              <a
+                href="https://huggingface.co"
+                target="_blank"
+                rel="noopener"
+                class="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+              >Hugging Face API</a>
+              - Repo metadata, safetensors stats, tags, files, likes, and downloads.
+            </div>
+          </div>
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <span>Model cards, papers, and official announcements for parameter counts, architecture details, and context lengths.</span>
+          </div>
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <span>GPU specs from official vendor datasheets for VRAM and bandwidth numbers.</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Apple Silicon: unified memory</h2>
         <p class="text-base leading-relaxed text-secondary">
-          Hugging Face gives us one consistent place for models, metadata, files, adapters, and future artifacts. That makes it the best base for expanding this site beyond model checks into datasets, Spaces, and later comparison tools built around the HF ecosystem.
+          Apple Silicon Macs share memory between CPU and GPU. This means the model can use a single unified pool instead of separate VRAM, which is why some Macs can run models that would not fit on a small discrete GPU.
         </p>
       </section>
 
       <section>
-        <h2 class="mb-3 font-pixel text-base text-primary">What stays local</h2>
+        <h2 class="mb-3 font-pixel text-base text-primary">Privacy and transparency</h2>
         <p class="text-base leading-relaxed text-secondary">
-          Your hardware detection stays in the browser. We only fetch Hugging Face repo metadata needed for the estimate. The verdict is an estimate, not a guarantee, because browser APIs and public repo metadata are both imperfect.
+          Hardware detection happens in your browser. We only fetch public model metadata needed for the estimate. The verdict is still an estimate because browser APIs and public repo metadata are both imperfect.
         </p>
       </section>
     </div>
