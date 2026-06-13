@@ -23,6 +23,7 @@ interface HFSibling {
 interface HFModelInfo {
   id?: string;
   pipeline_tag?: string;
+  library_name?: string;
   tags?: string[];
   siblings?: HFSibling[];
   config?: Record<string, unknown>;
@@ -144,6 +145,8 @@ function isAdapterRepo(repoInfo: HFModelInfo, parsedRepoId: string): boolean {
 
 function inferTensorTypeFromRepoInfo(repoInfo: HFModelInfo): HFTensorType {
   const text = [
+    getString(repoInfo.pipeline_tag),
+    getString(repoInfo.library_name),
     ...getStringList(repoInfo.tags),
     ...(repoInfo.siblings || []).map((sibling) => sibling.rfilename || ""),
   ]
@@ -154,6 +157,16 @@ function inferTensorTypeFromRepoInfo(repoInfo: HFModelInfo): HFTensorType {
   if (explicit !== "unknown") return explicit;
 
   if (text.includes(".pth") || text.includes(".pt")) {
+    return "f32";
+  }
+
+  if (
+    text.includes("tf-keras") ||
+    text.includes("tensorflow") ||
+    text.includes("saved_model.pb") ||
+    text.includes("variables.data-") ||
+    text.includes(".ckpt")
+  ) {
     return "f32";
   }
 
@@ -305,7 +318,11 @@ function deriveEstimate(context: HFRepoContext): DerivedEstimate {
   if (profiles.some((profile) => profile.source === "filesize")) {
     notes.push("At least one estimate comes from actual file size metadata.");
   } else if (usedStorageFallback && repoTensor === "f32") {
-    notes.push("Estimate derived from PyTorch checkpoint size with an F32 fallback.");
+    if (repoText.toLowerCase().includes("tf-keras") || repoText.toLowerCase().includes("tensorflow")) {
+      notes.push("Estimate derived from TensorFlow checkpoint size with an F32 fallback.");
+    } else {
+      notes.push("Estimate derived from PyTorch checkpoint size with an F32 fallback.");
+    }
   } else if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from Hugging Face safetensors metadata.");
   } else if (usedStorageFallback && tensorFallbackFromRepo) {
