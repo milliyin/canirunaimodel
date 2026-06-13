@@ -42,11 +42,10 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
           We fetch live metadata from Hugging Face once, estimate the model footprint, then score Device A and Device B against that exact same model.
         </p>
       </div>
-      <form id="hf-compare-form" class="mt-5 flex flex-col gap-3 sm:flex-row">
+      <form id="hf-compare-form" novalidate class="mt-5 flex flex-col gap-3 sm:flex-row">
         <input
           id="hf-compare-url"
           type="url"
-          required
           placeholder="https://huggingface.co/google/gemma-3-4b-it"
           class="min-w-0 flex-1 rounded-xl border border-edge bg-surface px-4 py-3 font-mono text-sm text-primary outline-none transition-colors focus:border-accent/50"
         />
