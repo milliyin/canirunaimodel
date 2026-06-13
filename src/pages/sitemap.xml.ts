@@ -27,7 +27,7 @@ const xmlEscape = (value: string) =>
     .replace(/'/g, "&apos;");
 
 export const GET: APIRoute = () => {
-  const lastmod = new Date().toISOString().split("T")[0];
+  const lastmod = new Date().toISOString();
   const urls = buildEntries()
     .map(
       (entry) => `  <url>
