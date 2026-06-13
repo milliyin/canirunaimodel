@@ -11,16 +11,44 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 ---
 
 <Layout
-  title="Compare Devices for Hugging Face Models - canirunaimodel"
-  description="Paste one Hugging Face model URL and compare Device A versus Device B on that same model without leaving the page."
+  title="Compare Devices for Any Hugging Face Model - canirunaimodel"
+  description="Paste one Hugging Face model URL and compare Device A versus Device B using local GPU, VRAM, RAM, and speed estimates on the same page."
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Compare Devices for Hugging Face Models",
-      "url": `${siteUrl}/compare`,
-      "description": "Paste one Hugging Face model URL and compare Device A versus Device B on that same model without leaving the page.",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+            { "@type": "ListItem", "position": 2, "name": "Compare", "item": `${siteUrl}/compare` }
+          ]
+        },
+        {
+          "@type": "WebPage",
+          "@id": `${siteUrl}/compare#webpage`,
+          "name": "Compare Devices for Hugging Face Models",
+          "url": `${siteUrl}/compare`,
+          "description": "Paste one Hugging Face model URL and compare Device A versus Device B on that same model without leaving the page.",
+          "isPartOf": { "@id": `${siteUrl}#website` }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "canirunaimodel Compare",
+          "url": `${siteUrl}/compare`,
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web Browser",
+          "description": "Compare two devices against the same Hugging Face model using VRAM, RAM, GPU fit, and speed estimates.",
+          "featureList": [
+            "Compare Device A versus Device B",
+            "Use one Hugging Face model URL",
+            "Estimate VRAM and RAM needs",
+            "Show winner and fit verdict"
+          ],
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      ]
     })}></script>
   </Fragment>
   <NavHeader />

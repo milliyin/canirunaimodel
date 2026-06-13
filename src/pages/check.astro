@@ -1,12 +1,55 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import NavHeader from "@/components/NavHeader.astro";
+
+const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https://canirunaimodel.vercel.app";
 ---
 
 <Layout
-  title="Check Any HF Model - canirunaimodel"
-  description="Paste any Hugging Face model URL, detect your hardware, and get an instant local run verdict."
+  title="Check Any Hugging Face Model Locally - canirunaimodel"
+  description="Paste any Hugging Face model URL, detect your hardware, and get an instant local GPU, VRAM, and RAM compatibility verdict."
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+            { "@type": "ListItem", "position": 2, "name": "Check", "item": `${siteUrl}/check` }
+          ]
+        },
+        {
+          "@type": "WebPage",
+          "@id": `${siteUrl}/check#webpage`,
+          "url": `${siteUrl}/check`,
+          "name": "Check Any HF Model",
+          "description": "Paste any Hugging Face model URL, detect your hardware, and get an instant local run verdict.",
+          "isPartOf": { "@id": `${siteUrl}#website` },
+          "about": {
+            "@type": "Thing",
+            "name": "Hugging Face model compatibility"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "canirunaimodel Check",
+          "url": `${siteUrl}/check`,
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web Browser",
+          "description": "Check whether a Hugging Face model fits your local GPU, VRAM, and RAM before you download it.",
+          "featureList": [
+            "Accept any Hugging Face model URL",
+            "Detect browser hardware",
+            "Estimate VRAM and RAM needs",
+            "Score local compatibility"
+          ],
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+        }
+      ]
+    })}></script>
+  </Fragment>
   <NavHeader />
   <main class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
     <section class="rounded-2xl border border-edge bg-surface-card/70 p-6 shadow-[0_12px_60px_rgba(0,0,0,0.2)] sm:p-8">
