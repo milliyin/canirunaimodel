@@ -28,12 +28,16 @@ export interface HFNormalizedModel {
   repoId: string;
   canonicalUrl: string;
   displayName: string;
+  modelKind: "full" | "adapter";
+  runtimeRepoId: string | null;
+  runtimeDisplayName: string | null;
   architecture: HFArchitectureKind;
   rawArchitecture: string | null;
   paramsBillions: number | null;
   tensorType: HFTensorType;
   contextLength: number | null;
   license: string | null;
+  adapterDiskGB: number | null;
   confidence: HFConfidence;
   notes: string[];
   profiles: HFEstimateProfile[];

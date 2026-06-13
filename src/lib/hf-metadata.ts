@@ -9,7 +9,9 @@ import {
   normalizeTensorType,
   pickPrimaryProfile,
   type HFConfidence,
+  type HFEstimateProfile,
   type HFNormalizedModel,
+  type HFTensorType,
 } from "@/lib/hf-estimation";
 import { parseHuggingFaceUrl } from "@/lib/hf-url";
 
@@ -30,6 +32,29 @@ interface HFModelInfo {
     parameters?: Record<string, number>;
   };
   usedStorage?: number;
+}
+
+interface HFRepoContext {
+  repoId: string;
+  canonicalUrl: string;
+  repoInfo: HFModelInfo;
+  config: Record<string, unknown> | null;
+}
+
+interface DerivedEstimate {
+  repoId: string;
+  canonicalUrl: string;
+  displayName: string;
+  architecture: HFNormalizedModel["architecture"];
+  rawArchitecture: string | null;
+  paramsBillions: number | null;
+  tensorType: HFTensorType;
+  contextLength: number | null;
+  license: string | null;
+  confidence: HFConfidence;
+  notes: string[];
+  profiles: HFEstimateProfile[];
+  usedStorageGB: number | null;
 }
 
 function preferKnownString<T extends string>(...values: T[]): T {
@@ -65,6 +90,10 @@ function getNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function getStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
 function uniqueProfiles<T extends { label: string }>(profiles: T[]): T[] {
   const seen = new Set<string>();
   return profiles.filter((profile) => {
@@ -75,25 +104,66 @@ function uniqueProfiles<T extends { label: string }>(profiles: T[]): T[] {
   });
 }
 
-export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormalizedModel | null> {
-  const parsed = parseHuggingFaceUrl(input);
-  if (!parsed) return null;
+function bytesToGB(sizeBytes: number | null | undefined): number | null {
+  if (!Number.isFinite(sizeBytes) || !sizeBytes || sizeBytes <= 0) return null;
+  return Math.round((sizeBytes / (1024 ** 3)) * 10) / 10;
+}
 
-  const repoInfo = await fetchJson<HFModelInfo>(
-    `https://huggingface.co/api/models/${parsed.repoId}`,
-  );
+function normalizeBaseModelId(value: unknown): string | null {
+  if (typeof value === "string" && value.includes("/")) {
+    return value.trim() || null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const resolved = normalizeBaseModelId(item);
+      if (resolved) return resolved;
+    }
+  }
+
+  return null;
+}
+
+function isAdapterRepo(repoInfo: HFModelInfo, parsedRepoId: string): boolean {
+  const repoText = [
+    parsedRepoId,
+    repoInfo.pipeline_tag,
+    ...getStringList(repoInfo.tags),
+    getString(repoInfo.cardData?.base_model),
+    getString(repoInfo.cardData?.model_name),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return repoText.includes("lora") || repoText.includes("adapter");
+}
+
+async function fetchRepoContext(repoId: string, revision: string | null): Promise<HFRepoContext | null> {
+  const repoInfo = await fetchJson<HFModelInfo>(`https://huggingface.co/api/models/${repoId}`);
   if (!repoInfo) return null;
 
-  const revision = parsed.revision || "main";
   const config = await fetchJson<Record<string, unknown>>(
-    `https://huggingface.co/${parsed.repoId}/raw/${revision}/config.json`,
+    `https://huggingface.co/${repoId}/raw/${revision || "main"}/config.json`,
   );
+
+  return {
+    repoId,
+    canonicalUrl: `https://huggingface.co/${repoId}`,
+    repoInfo,
+    config,
+  };
+}
+
+function deriveEstimate(context: HFRepoContext): DerivedEstimate {
+  const { repoId, canonicalUrl, repoInfo, config } = context;
 
   const rawArchitecture =
     getString(config?.architectures instanceof Array ? config.architectures[0] : null) ||
     getString(config?.model_type) ||
     getString(repoInfo.config?.architectures instanceof Array ? repoInfo.config.architectures[0] : null) ||
-    getString(repoInfo.config?.model_type);
+    getString(repoInfo.config?.model_type) ||
+    getString(repoInfo.pipeline_tag);
 
   const contextLength =
     getNumber(config?.max_position_embeddings) ||
@@ -102,17 +172,16 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
     getNumber(config?.model_max_length);
 
   const repoText = [
-    parsed.repoId,
+    repoId,
     rawArchitecture,
-    ...(repoInfo.tags || []),
-    getString(repoInfo.cardData?.base_model),
+    ...getStringList(repoInfo.tags),
+    normalizeBaseModelId(repoInfo.cardData?.base_model),
     getString(repoInfo.cardData?.model_name),
   ]
     .filter(Boolean)
     .join(" ");
 
   const textParamsBillions = inferParamsFromText(repoText);
-
   const safetensorsEstimate = inferParamsFromSafetensors(repoInfo.safetensors?.parameters);
 
   const configTensor = preferKnownString(
@@ -217,9 +286,9 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
   }
 
   return {
-    repoId: parsed.repoId,
-    canonicalUrl: parsed.canonicalUrl,
-    displayName: displayNameFromRepoId(parsed.repoId),
+    repoId,
+    canonicalUrl,
+    displayName: displayNameFromRepoId(repoId),
     architecture: inferArchitectureKind(rawArchitecture),
     rawArchitecture,
     paramsBillions,
@@ -229,5 +298,72 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
     confidence,
     notes,
     profiles,
+    usedStorageGB: bytesToGB(repoInfo.usedStorage),
+  };
+}
+
+export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormalizedModel | null> {
+  const parsed = parseHuggingFaceUrl(input);
+  if (!parsed) return null;
+
+  const repoContext = await fetchRepoContext(parsed.repoId, parsed.revision);
+  if (!repoContext) return null;
+
+  const ownEstimate = deriveEstimate(repoContext);
+  const baseModelId = normalizeBaseModelId(repoContext.repoInfo.cardData?.base_model);
+
+  if (!isAdapterRepo(repoContext.repoInfo, parsed.repoId) || !baseModelId || baseModelId === parsed.repoId) {
+    return {
+      ...ownEstimate,
+      modelKind: "full",
+      runtimeRepoId: null,
+      runtimeDisplayName: null,
+      adapterDiskGB: null,
+    };
+  }
+
+  const baseContext = await fetchRepoContext(baseModelId, null);
+  if (!baseContext) {
+    return {
+      ...ownEstimate,
+      modelKind: "adapter",
+      runtimeRepoId: baseModelId,
+      runtimeDisplayName: displayNameFromRepoId(baseModelId),
+      adapterDiskGB: ownEstimate.usedStorageGB,
+      notes: [
+        `Adapter repo detected. This artifact likely needs base model ${baseModelId} at runtime.`,
+        ...(ownEstimate.usedStorageGB ? [`Adapter files are about ${ownEstimate.usedStorageGB} GB on disk.`] : []),
+        ...ownEstimate.notes,
+      ],
+    };
+  }
+
+  const baseEstimate = deriveEstimate(baseContext);
+  const mergedNotes = [
+    `Adapter repo detected. Runtime estimate uses base model ${baseModelId}.`,
+    ...(ownEstimate.usedStorageGB ? [`Adapter files are about ${ownEstimate.usedStorageGB} GB on disk.`] : []),
+    ...baseEstimate.notes,
+  ];
+
+  return {
+    repoId: ownEstimate.repoId,
+    canonicalUrl: ownEstimate.canonicalUrl,
+    displayName: ownEstimate.displayName,
+    modelKind: "adapter",
+    runtimeRepoId: baseEstimate.repoId,
+    runtimeDisplayName: baseEstimate.displayName,
+    architecture: baseEstimate.architecture,
+    rawArchitecture: baseEstimate.rawArchitecture,
+    paramsBillions: baseEstimate.paramsBillions,
+    tensorType: baseEstimate.tensorType,
+    contextLength: baseEstimate.contextLength,
+    license: ownEstimate.license || baseEstimate.license,
+    adapterDiskGB: ownEstimate.usedStorageGB,
+    confidence: baseEstimate.confidence,
+    notes: mergedNotes,
+    profiles: baseEstimate.profiles.map((profile) => ({
+      ...profile,
+      label: `${profile.label} (${baseEstimate.displayName})`,
+    })),
   };
 }
