@@ -139,6 +139,24 @@ function isAdapterRepo(repoInfo: HFModelInfo, parsedRepoId: string): boolean {
   return repoText.includes("lora") || repoText.includes("adapter");
 }
 
+function inferTensorTypeFromRepoInfo(repoInfo: HFModelInfo): HFTensorType {
+  const text = [
+    ...getStringList(repoInfo.tags),
+    ...(repoInfo.siblings || []).map((sibling) => sibling.rfilename || ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const explicit = normalizeTensorType(text);
+  if (explicit !== "unknown") return explicit;
+
+  if (text.includes(".safetensors") || text.includes("safetensors")) {
+    return "bf16";
+  }
+
+  return "unknown";
+}
+
 async function fetchRepoContext(repoId: string, revision: string | null): Promise<HFRepoContext | null> {
   const repoInfo = await fetchJson<HFModelInfo>(`https://huggingface.co/api/models/${repoId}`);
   if (!repoInfo) return null;
@@ -183,17 +201,21 @@ function deriveEstimate(context: HFRepoContext): DerivedEstimate {
 
   const textParamsBillions = inferParamsFromText(repoText);
   const safetensorsEstimate = inferParamsFromSafetensors(repoInfo.safetensors?.parameters);
+  const repoTensor = inferTensorTypeFromRepoInfo(repoInfo);
 
   const configTensor = preferKnownString(
     safetensorsEstimate.tensorType,
     normalizeTensorType(getString(config?.torch_dtype)),
     normalizeTensorType(getString(repoInfo.config?.torch_dtype)),
+    repoTensor,
   );
 
   const paramsBillions =
     safetensorsEstimate.paramsBillions ||
     textParamsBillions ||
     inferParamsFromBytes(repoInfo.usedStorage || 0, configTensor);
+  const usedStorageFallback = !safetensorsEstimate.paramsBillions && !textParamsBillions && Boolean(paramsBillions);
+  const tensorFallbackFromRepo = repoTensor !== "unknown" && !getString(config?.torch_dtype) && !getString(repoInfo.config?.torch_dtype);
 
   const profiles = uniqueProfiles(
     (repoInfo.siblings || [])
@@ -266,18 +288,22 @@ function deriveEstimate(context: HFRepoContext): DerivedEstimate {
 
   if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
     confidence = profiles.some((profile) => profile.source === "filesize") ? "exact" : "high";
+  } else if (usedStorageFallback) {
+    confidence = confidence === "low" ? "medium" : confidence;
   }
 
   if (profiles.some((profile) => profile.source === "filesize")) {
     notes.push("At least one estimate comes from actual file size metadata.");
   } else if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from Hugging Face safetensors metadata.");
+  } else if (usedStorageFallback && tensorFallbackFromRepo) {
+    notes.push("Estimate derived from repository storage size with a BF16-style safetensors fallback.");
+  } else if (usedStorageFallback) {
+    notes.push("Estimate derived from repository storage size with low-confidence assumptions.");
   } else if (paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from config parameter count and tensor dtype.");
   } else if (paramsBillions && profiles.length > 0) {
     notes.push("Estimate derived from parameter count with fallback assumptions for missing tensor metadata.");
-  } else if (paramsBillions && repoInfo.usedStorage) {
-    notes.push("Estimate derived from repository storage size with low-confidence assumptions.");
   }
 
   const primary = pickPrimaryProfile(profiles);
