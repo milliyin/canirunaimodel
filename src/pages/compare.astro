@@ -504,6 +504,7 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
   function renderSingleDeviceCard(
     el: HTMLElement,
     label: string,
+    deviceTitle: string,
     hw: HardwareInfo,
     profile: Profile | null,
     paramsBillions: number | null,
@@ -511,13 +512,13 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     if (!profile) {
       el.innerHTML = `
         <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">${label}</p>
-        <p class="mt-3 font-pixel text-xl text-primary">${getDisplayName(hw)}</p>
+        <p class="mt-3 font-pixel text-xl text-primary">${deviceTitle}</p>
         <p class="mt-3 text-sm text-secondary">No usable estimate profile found for this model.</p>
       `;
       return;
     }
 
-    const title = getDisplayName(hw);
+    const title = deviceTitle;
     if (!paramsBillions) {
       el.innerHTML = `
         <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">${label}</p>
@@ -665,8 +666,8 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     const aLabel = getDeviceLabel(selectA.value);
     const bLabel = getDeviceLabel(selectB.value);
 
-    renderSingleDeviceCard(resultAEl, "Device A", hwA, profile, model.paramsBillions);
-    renderSingleDeviceCard(resultBEl, "Device B", hwB, profile, model.paramsBillions);
+    renderSingleDeviceCard(resultAEl, "Device A", aLabel, hwA, profile, model.paramsBillions);
+    renderSingleDeviceCard(resultBEl, "Device B", bLabel, hwB, profile, model.paramsBillions);
 
     const aResult = profile && model.paramsBillions ? evaluateModelComplete(profile.estimatedVRAMGB, hwA, model.paramsBillions) : null;
     const bResult = profile && model.paramsBillions ? evaluateModelComplete(profile.estimatedVRAMGB, hwB, model.paramsBillions) : null;
