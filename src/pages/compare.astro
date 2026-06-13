@@ -11,8 +11,8 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 ---
 
 <Layout
-  title="Compare Devices for Hugging Face Models - CanIRun.ai"
-  description="Compare Device A and Device B side by side across Hugging Face friendly model estimates without leaving the compare page."
+  title="Compare Devices for Hugging Face Models - canirunaimodel"
+  description="Paste one Hugging Face model URL and compare Device A versus Device B on that same model without leaving the page."
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -20,7 +20,7 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
       "@type": "WebPage",
       "name": "Compare Devices for Hugging Face Models",
       "url": `${siteUrl}/compare`,
-      "description": "Compare Device A and Device B side by side across built-in AI model estimates and Hugging Face focused compatibility signals.",
+      "description": "Paste one Hugging Face model URL and compare Device A versus Device B on that same model without leaving the page.",
     })}></script>
   </Fragment>
   <NavHeader />
@@ -30,34 +30,34 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
         Compare Devices
       </h1>
       <p class="mt-2 text-base text-muted">
-        Compare Device A and Device B against the model library in one place, without leaving this page.
+        Paste one Hugging Face model URL, pick Device A and Device B, and compare both against that same model here.
       </p>
     </header>
 
-    <section class="mb-10 rounded-2xl border border-edge/70 bg-surface-card/70 p-5">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div class="max-w-2xl">
-          <p class="font-mono text-xs uppercase tracking-[0.18em] text-accent/80">Hugging Face quick check</p>
-          <h2 class="mt-2 font-pixel text-xl text-primary">Paste a model URL and check it on your machine</h2>
-          <p class="mt-2 text-sm leading-6 text-secondary">
-            This page compares devices using the built-in model library. For any external repo, open the HF checker and fetch live metadata straight from Hugging Face.
-          </p>
-        </div>
-        <form action="/check" method="get" class="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
-          <input
-            type="url"
-            name="url"
-            placeholder="https://huggingface.co/google/gemma-3-4b-it"
-            class="min-w-0 flex-1 rounded-xl border border-edge bg-surface px-4 py-3 font-mono text-sm text-primary outline-none transition-colors focus:border-accent/50"
-          />
-          <button
-            type="submit"
-            class="inline-flex items-center justify-center rounded-xl border border-accent/40 bg-accent/10 px-5 py-3 font-mono text-sm text-accent transition-colors hover:bg-accent/15"
-          >
-            Open HF check
-          </button>
-        </form>
+    <section class="mb-6 rounded-2xl border border-edge/70 bg-surface-card/70 p-5">
+      <div class="max-w-2xl">
+        <p class="font-mono text-xs uppercase tracking-[0.18em] text-accent/80">Same model, two devices</p>
+        <h2 class="mt-2 font-pixel text-xl text-primary">Compare both devices against one Hugging Face repo</h2>
+        <p class="mt-2 text-sm leading-6 text-secondary">
+          We fetch live metadata from Hugging Face once, estimate the model footprint, then score Device A and Device B against that exact same model.
+        </p>
       </div>
+      <form id="hf-compare-form" class="mt-5 flex flex-col gap-3 sm:flex-row">
+        <input
+          id="hf-compare-url"
+          type="url"
+          required
+          placeholder="https://huggingface.co/google/gemma-3-4b-it"
+          class="min-w-0 flex-1 rounded-xl border border-edge bg-surface px-4 py-3 font-mono text-sm text-primary outline-none transition-colors focus:border-accent/50"
+        />
+        <button
+          id="hf-compare-submit"
+          type="submit"
+          class="inline-flex items-center justify-center rounded-xl border border-accent/40 bg-accent/10 px-5 py-3 font-mono text-sm text-accent transition-colors hover:bg-accent/15"
+        >
+          Compare devices
+        </button>
+      </form>
     </section>
 
     <section class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -82,9 +82,32 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     </section>
 
     <section id="specs-bar" class="mb-8 hidden">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div id="specs-a" class="rounded-lg border border-edge/40 bg-surface-raised px-4 py-3 font-mono text-[13px] text-secondary"></div>
         <div id="specs-b" class="rounded-lg border border-edge/40 bg-surface-raised px-4 py-3 font-mono text-[13px] text-secondary"></div>
+      </div>
+    </section>
+
+    <div id="hf-compare-error" class="mb-6 hidden rounded-xl border border-red-500/30 bg-red-500/10 p-4 font-mono text-sm text-red-300"></div>
+
+    <section id="hf-compare-results" class="mb-12 hidden">
+      <div class="rounded-2xl border border-edge bg-surface-card/70 p-6">
+        <div id="hf-compare-model"></div>
+        <div class="mt-6 grid gap-4 lg:grid-cols-2">
+          <article id="hf-device-a-result" class="rounded-2xl border border-edge/70 bg-surface/50 p-5"></article>
+          <article id="hf-device-b-result" class="rounded-2xl border border-edge/70 bg-surface/50 p-5"></article>
+        </div>
+        <div id="hf-compare-winner" class="mt-5 rounded-xl border border-edge/70 bg-surface/40 p-4 font-mono text-sm text-secondary"></div>
+        <div id="hf-compare-notes" class="mt-5 rounded-xl border border-edge/70 bg-surface/40 p-4"></div>
+      </div>
+    </section>
+
+    <section class="mb-4">
+      <div class="rounded-2xl border border-edge/70 bg-surface-card/50 p-4">
+        <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Library fallback</p>
+        <p class="mt-2 text-sm text-secondary">
+          If you do not paste a Hugging Face URL, the built-in library comparison below still works for quick browsing.
+        </p>
       </div>
     </section>
 
@@ -198,14 +221,46 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     getDeviceOverrides,
     applyOverrides,
     getHardwareOverrides,
+    GRADES,
   } from "@/lib/hardware";
   import type { HardwareInfo, Grade, GradeInfo } from "@/lib/hardware";
   import { appendDeviceOptgroups, formatChipName } from "@/lib/hardware-ui";
   import { models } from "@/data/models";
 
+  type Profile = {
+    label: string
+    tensorType: string
+    source: string
+    estimatedVRAMGB: number
+    estimatedRAMGB: number
+    diskGB: number | null
+  }
+
+  type ModelPayload = {
+    model: {
+      repoId: string
+      canonicalUrl: string
+      displayName: string
+      modelKind: "full" | "adapter"
+      runtimeRepoId: string | null
+      runtimeDisplayName: string | null
+      architecture: string
+      rawArchitecture: string | null
+      paramsBillions: number | null
+      tensorType: string
+      contextLength: number | null
+      license: string | null
+      adapterDiskGB: number | null
+      confidence: string
+      notes: string[]
+      profiles: Profile[]
+    }
+    primaryProfile: Profile | null
+  }
+
   const DEFAULT_DEVICE_B = "apple:m5 max";
 
-  const GRADES: Record<Grade, GradeInfo> = {
+  const GRADE_INFO: Record<Grade, GradeInfo> = {
     S: { letter: "S", label: "Runs great", color: "var(--color-can-run)" },
     A: { letter: "A", label: "Runs well", color: "var(--color-grade-a)" },
     B: { letter: "B", label: "Decent", color: "var(--color-grade-b)" },
@@ -218,6 +273,7 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
   const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
 
   let detectedHW: HardwareInfo | null = null;
+  let currentPayload: ModelPayload | null = null;
 
   function resetAndPopulateSelect(select: HTMLSelectElement, firstOption: { value: string; text: string }) {
     select.innerHTML = "";
@@ -225,7 +281,6 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     first.value = firstOption.value;
     first.textContent = firstOption.text;
     select.appendChild(first);
-
     appendDeviceOptgroups(select);
   }
 
@@ -291,7 +346,67 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     if (colHeaderB) colHeaderB.textContent = bLabel;
   }
 
-  function runComparison() {
+  function setError(message: string) {
+    const el = $("#hf-compare-error");
+    if (!el) return;
+    el.textContent = message;
+    el.classList.remove("hidden");
+  }
+
+  function clearError() {
+    const el = $("#hf-compare-error");
+    if (!el) return;
+    el.textContent = "";
+    el.classList.add("hidden");
+  }
+
+  function renderSide(
+    el: HTMLElement,
+    eval_: { grade: Grade; score: number; toksPerSec: number | null; memPct: number | null; status: string },
+  ) {
+    const gradeInfo = GRADE_INFO[eval_.grade];
+
+    const gradeEl = el.querySelector<HTMLElement>("[data-grade]");
+    if (gradeEl) {
+      gradeEl.textContent = gradeInfo.label;
+      gradeEl.style.color = gradeInfo.color;
+    }
+
+    const scoreEl = el.querySelector<HTMLElement>("[data-score-num]");
+    if (scoreEl) {
+      scoreEl.textContent = `${eval_.score}/100`;
+      scoreEl.style.color = gradeInfo.color;
+    }
+
+    const toksEl = el.querySelector<HTMLElement>("[data-toks]");
+    if (toksEl) {
+      if (eval_.toksPerSec !== null && eval_.status !== "cannot-run") {
+        toksEl.textContent = `~${eval_.toksPerSec} tok/s`;
+        if (eval_.toksPerSec >= 60) toksEl.style.color = "var(--color-can-run)";
+        else if (eval_.toksPerSec >= 30) toksEl.style.color = "var(--color-grade-a)";
+        else if (eval_.toksPerSec >= 15) toksEl.style.color = "var(--color-maybe)";
+        else if (eval_.toksPerSec >= 5) toksEl.style.color = "var(--color-grade-d)";
+        else toksEl.style.color = "var(--color-cannot-run)";
+      } else {
+        toksEl.textContent = eval_.status === "cannot-run" ? "-" : "? tok/s";
+        toksEl.style.color = "var(--color-muted)";
+      }
+    }
+
+    const memEl = el.querySelector<HTMLElement>("[data-mem]");
+    if (memEl) {
+      if (eval_.memPct !== null) {
+        memEl.textContent = `${eval_.memPct}% mem`;
+        if (eval_.memPct > 100) memEl.style.color = "var(--color-cannot-run)";
+        else if (eval_.memPct > 75) memEl.style.color = "var(--color-maybe)";
+        else memEl.style.color = "var(--color-muted)";
+      } else {
+        memEl.textContent = "";
+      }
+    }
+  }
+
+  function runLibraryComparison() {
     const selectA = $<HTMLSelectElement>("#device-a");
     const selectB = $<HTMLSelectElement>("#device-b");
     if (!selectA || !selectB) return;
@@ -376,58 +491,206 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     if ($("#wins-tie")) $("#wins-tie")!.textContent = String(ties);
   }
 
-  function renderSide(
+  function compareScoreText(result: ReturnType<typeof evaluateModelComplete>) {
+    const info = GRADE_INFO[result.grade];
+    return {
+      gradeLabel: info.label,
+      gradeColor: info.color,
+      score: result.score,
+      toks: result.toksPerSec,
+      memPct: result.memPct,
+    };
+  }
+
+  function renderSingleDeviceCard(
     el: HTMLElement,
-    eval_: { grade: Grade; score: number; toksPerSec: number | null; memPct: number | null; status: string },
+    label: string,
+    hw: HardwareInfo,
+    profile: Profile | null,
+    paramsBillions: number | null,
   ) {
-    const gradeInfo = GRADES[eval_.grade];
-
-    const gradeEl = el.querySelector<HTMLElement>("[data-grade]");
-    if (gradeEl) {
-      gradeEl.textContent = gradeInfo.label;
-      gradeEl.style.color = gradeInfo.color;
+    if (!profile) {
+      el.innerHTML = `
+        <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">${label}</p>
+        <p class="mt-3 font-pixel text-xl text-primary">${getDisplayName(hw)}</p>
+        <p class="mt-3 text-sm text-secondary">No usable estimate profile found for this model.</p>
+      `;
+      return;
     }
 
-    const scoreEl = el.querySelector<HTMLElement>("[data-score-num]");
-    if (scoreEl) {
-      scoreEl.textContent = `${eval_.score}/100`;
-      scoreEl.style.color = gradeInfo.color;
+    const title = getDisplayName(hw);
+    if (!paramsBillions) {
+      el.innerHTML = `
+        <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">${label}</p>
+        <p class="mt-3 font-pixel text-xl text-primary">${title}</p>
+        <p class="mt-3 text-sm text-secondary">Profile: ${profile.label}</p>
+        <div class="mt-4 grid gap-2 font-mono text-sm text-secondary">
+          <p>~${profile.estimatedVRAMGB} GB VRAM</p>
+          <p>~${profile.estimatedRAMGB} GB RAM</p>
+          <p>${profile.diskGB !== null ? `${profile.diskGB} GB disk` : "disk unknown"}</p>
+        </div>
+        <p class="mt-4 text-sm text-muted">Exact verdict needs a parameter count from Hugging Face metadata.</p>
+      `;
+      return;
     }
 
-    const toksEl = el.querySelector<HTMLElement>("[data-toks]");
-    if (toksEl) {
-      if (eval_.toksPerSec !== null && eval_.status !== "cannot-run") {
-        toksEl.textContent = `~${eval_.toksPerSec} tok/s`;
-        if (eval_.toksPerSec >= 60) toksEl.style.color = "var(--color-can-run)";
-        else if (eval_.toksPerSec >= 30) toksEl.style.color = "var(--color-grade-a)";
-        else if (eval_.toksPerSec >= 15) toksEl.style.color = "var(--color-maybe)";
-        else if (eval_.toksPerSec >= 5) toksEl.style.color = "var(--color-grade-d)";
-        else toksEl.style.color = "var(--color-cannot-run)";
-      } else {
-        toksEl.textContent = eval_.status === "cannot-run" ? "-" : "? tok/s";
-        toksEl.style.color = "var(--color-muted)";
+    const result = evaluateModelComplete(profile.estimatedVRAMGB, hw, paramsBillions);
+    const info = compareScoreText(result);
+
+    el.innerHTML = `
+      <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">${label}</p>
+      <p class="mt-3 font-pixel text-xl text-primary">${title}</p>
+      <div class="mt-4 rounded-xl border border-edge/70 bg-surface/60 p-4">
+        <p class="font-pixel text-2xl" style="color:${info.gradeColor}">${info.gradeLabel}</p>
+        <div class="mt-3 grid gap-2 font-mono text-sm text-secondary">
+          <p>Score: <span style="color:${info.gradeColor}">${info.score}/100</span></p>
+          <p>Speed: ${info.toks !== null ? `~${info.toks} tok/s` : "unknown"}</p>
+          <p>Memory: ${info.memPct !== null ? `${info.memPct}% use` : "unknown"}</p>
+          <p>VRAM need: ~${profile.estimatedVRAMGB} GB</p>
+          <p>RAM need: ~${profile.estimatedRAMGB} GB</p>
+          <p>Profile: ${profile.label}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderWinnerSummary(
+    aLabel: string,
+    bLabel: string,
+    aResult: ReturnType<typeof evaluateModelComplete> | null,
+    bResult: ReturnType<typeof evaluateModelComplete> | null,
+  ) {
+    const el = $("#hf-compare-winner");
+    if (!el) return;
+
+    if (!aResult || !bResult) {
+      el.innerHTML = `<p>Both devices were compared, but the model metadata was not complete enough for a full verdict winner.</p>`;
+      return;
+    }
+
+    let winner = "Tie";
+    let detail = "Scores are very close.";
+    if (aResult.score > bResult.score + 5) {
+      winner = aLabel;
+      detail = `${aLabel} has a clearer fit advantage on this model.`;
+    } else if (bResult.score > aResult.score + 5) {
+      winner = bLabel;
+      detail = `${bLabel} has a clearer fit advantage on this model.`;
+    } else {
+      const aToks = aResult.toksPerSec ?? 0;
+      const bToks = bResult.toksPerSec ?? 0;
+      if (aToks > bToks + 1) {
+        winner = aLabel;
+        detail = `${aLabel} is the faster fit on this model.`;
+      } else if (bToks > aToks + 1) {
+        winner = bLabel;
+        detail = `${bLabel} is the faster fit on this model.`;
       }
     }
 
-    const memEl = el.querySelector<HTMLElement>("[data-mem]");
-    if (memEl) {
-      if (eval_.memPct !== null) {
-        memEl.textContent = `${eval_.memPct}% mem`;
-        if (eval_.memPct > 100) memEl.style.color = "var(--color-cannot-run)";
-        else if (eval_.memPct > 75) memEl.style.color = "var(--color-maybe)";
-        else memEl.style.color = "var(--color-muted)";
-      } else {
-        memEl.textContent = "";
-      }
-    }
+    el.innerHTML = `
+      <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Comparison verdict</p>
+      <p class="mt-2 font-pixel text-lg text-primary">${winner}</p>
+      <p class="mt-2 text-sm text-secondary">${detail}</p>
+    `;
+  }
+
+  function renderHfComparison(payload: ModelPayload) {
+    const selectA = $<HTMLSelectElement>("#device-a");
+    const selectB = $<HTMLSelectElement>("#device-b");
+    if (!selectA || !selectB) return;
+
+    const hwA = buildHardwareInfo(selectA.value);
+    const hwB = buildHardwareInfo(selectB.value);
+    if (!hwA || !hwB) return;
+
+    const profile = payload.primaryProfile || payload.model.profiles[0] || null;
+    const modelEl = $("#hf-compare-model");
+    const notesEl = $("#hf-compare-notes");
+    const resultAEl = $("#hf-device-a-result");
+    const resultBEl = $("#hf-device-b-result");
+    const wrapper = $("#hf-compare-results");
+    if (!modelEl || !notesEl || !resultAEl || !resultBEl || !wrapper) return;
+
+    const model = payload.model;
+    const paramsText = model.paramsBillions ? `${model.paramsBillions}B params` : "params unknown";
+    const contextText = model.contextLength ? `${Math.round(model.contextLength / 1024)}K context` : "context unknown";
+    const runtimeText =
+      model.modelKind === "adapter" && model.runtimeRepoId
+        ? `<p class="mt-2 text-sm text-secondary">Runtime base: ${model.runtimeRepoId}</p>`
+        : "";
+
+    modelEl.innerHTML = `
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-accent/80">${model.confidence} confidence</p>
+          <h2 class="mt-2 font-pixel text-2xl text-primary">${model.displayName}</h2>
+          <p class="mt-2 font-mono text-sm text-secondary">${model.repoId}</p>
+          ${runtimeText}
+        </div>
+        <a
+          href="${model.canonicalUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center rounded-full border border-yellow-400/30 bg-yellow-400/10 px-3 py-1.5 font-mono text-xs text-yellow-300"
+        >
+          Open on Hugging Face
+        </a>
+      </div>
+
+      <div class="mt-5 grid gap-3 sm:grid-cols-3">
+        <div class="rounded-xl border border-edge/70 bg-surface/60 p-3">
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Metadata</p>
+          <p class="mt-2 text-sm text-primary">${paramsText}</p>
+          <p class="text-sm text-secondary">${model.rawArchitecture || model.architecture}</p>
+          <p class="text-sm text-secondary">${model.tensorType.toUpperCase()} / ${contextText}</p>
+        </div>
+        <div class="rounded-xl border border-edge/70 bg-surface/60 p-3">
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Primary profile</p>
+          ${
+            profile
+              ? `<p class="mt-2 text-sm text-primary">${profile.label}</p>
+                 <p class="text-sm text-secondary">~${profile.estimatedVRAMGB} GB VRAM</p>
+                 <p class="text-sm text-secondary">~${profile.estimatedRAMGB} GB RAM</p>`
+              : `<p class="mt-2 text-sm text-secondary">No estimate profile found.</p>`
+          }
+        </div>
+        <div class="rounded-xl border border-edge/70 bg-surface/60 p-3">
+          <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Model type</p>
+          <p class="mt-2 text-sm text-primary">${model.modelKind === "adapter" ? "Adapter / LoRA-style repo" : "Full model repo"}</p>
+          <p class="text-sm text-secondary">${model.license || "license unknown"}</p>
+        </div>
+      </div>
+    `;
+
+    const aLabel = getDeviceLabel(selectA.value);
+    const bLabel = getDeviceLabel(selectB.value);
+
+    renderSingleDeviceCard(resultAEl, "Device A", hwA, profile, model.paramsBillions);
+    renderSingleDeviceCard(resultBEl, "Device B", hwB, profile, model.paramsBillions);
+
+    const aResult = profile && model.paramsBillions ? evaluateModelComplete(profile.estimatedVRAMGB, hwA, model.paramsBillions) : null;
+    const bResult = profile && model.paramsBillions ? evaluateModelComplete(profile.estimatedVRAMGB, hwB, model.paramsBillions) : null;
+    renderWinnerSummary(aLabel, bLabel, aResult, bResult);
+
+    notesEl.innerHTML = `
+      <p class="font-mono text-xs uppercase tracking-[0.18em] text-muted">Notes</p>
+      <ul class="mt-3 space-y-2 text-sm text-secondary">
+        ${model.notes.length ? model.notes.map((note) => `<li>${note}</li>`).join("") : "<li>No extra notes.</li>"}
+      </ul>
+    `;
+
+    wrapper.classList.remove("hidden");
   }
 
   function syncToURL() {
     const a = $<HTMLSelectElement>("#device-a")?.value || "";
     const b = $<HTMLSelectElement>("#device-b")?.value || "";
+    const hfUrl = ($<HTMLInputElement>("#hf-compare-url")?.value || "").trim();
     const params = new URLSearchParams();
     if (a && a !== "auto") params.set("a", a);
     if (b && b !== DEFAULT_DEVICE_B) params.set("b", b);
+    if (hfUrl) params.set("url", hfUrl);
     const qs = params.toString();
     history.replaceState(history.state, "", qs ? `?${qs}` : location.pathname);
   }
@@ -436,11 +699,14 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     const params = new URLSearchParams(location.search);
     const a = params.get("a");
     const b = params.get("b");
+    const url = params.get("url");
     const selectA = $<HTMLSelectElement>("#device-a");
     const selectB = $<HTMLSelectElement>("#device-b");
+    const input = $<HTMLInputElement>("#hf-compare-url");
     if (a && selectA) selectA.value = a;
     if (b && selectB) selectB.value = b;
     else if (selectB) selectB.value = DEFAULT_DEVICE_B;
+    if (url && input) input.value = url;
   }
 
   function sortRows() {
@@ -464,14 +730,56 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     rows.forEach((row) => container.appendChild(row));
   }
 
-  function onChange() {
-    runComparison();
+  function onDeviceChange() {
+    runLibraryComparison();
+    if (currentPayload) {
+      renderHfComparison(currentPayload);
+    }
     syncToURL();
   }
 
   function getAutoLabel(): string {
     if (detectedHW) return `${getDisplayName(detectedHW)} (detected)`;
     return "Detecting your device...";
+  }
+
+  async function submitHfCompare() {
+    clearError();
+    const input = $<HTMLInputElement>("#hf-compare-url");
+    const button = $<HTMLButtonElement>("#hf-compare-submit");
+    if (!input || !button) return;
+
+    const url = input.value.trim();
+    if (!url) {
+      currentPayload = null;
+      $("#hf-compare-results")?.classList.add("hidden");
+      syncToURL();
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Comparing...";
+    syncToURL();
+
+    try {
+      const response = await fetch(`/api/hf/model?url=${encodeURIComponent(url)}`);
+      const payload = await response.json();
+      if (!response.ok) {
+        currentPayload = null;
+        $("#hf-compare-results")?.classList.add("hidden");
+        setError(payload.error === "invalid_huggingface_url" ? "That does not look like a Hugging Face model URL." : "Could not fetch metadata from Hugging Face.");
+        return;
+      }
+      currentPayload = payload as ModelPayload;
+      renderHfComparison(currentPayload);
+    } catch {
+      currentPayload = null;
+      $("#hf-compare-results")?.classList.add("hidden");
+      setError("Request failed. Try again in a moment.");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Compare devices";
+    }
   }
 
   async function initCompare() {
@@ -491,28 +799,44 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
       selectA.value = "auto";
     }
 
-    runComparison();
-    syncToURL();
+    runLibraryComparison();
+    if (($<HTMLInputElement>("#hf-compare-url")?.value || "").trim()) {
+      await submitHfCompare();
+    } else {
+      syncToURL();
+    }
   }
 
   function setupComparePage() {
     const selectA = $<HTMLSelectElement>("#device-a");
     const selectB = $<HTMLSelectElement>("#device-b");
-    if (!selectA || !selectB) return;
+    const form = $<HTMLFormElement>("#hf-compare-form");
+    if (!selectA || !selectB || !form) return;
 
     resetAndPopulateSelect(selectA, { value: "auto", text: getAutoLabel() });
     resetAndPopulateSelect(selectB, { value: "", text: "Select a device..." });
 
     loadFromURL();
 
-    selectA.onchange = onChange;
-    selectB.onchange = onChange;
+    selectA.onchange = onDeviceChange;
+    selectB.onchange = onDeviceChange;
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await submitHfCompare();
+    });
 
     const sortSelect = $<HTMLSelectElement>("#sort-by");
     if (sortSelect) sortSelect.onchange = sortRows;
 
-    if (detectedHW) runComparison();
-    else void initCompare();
+    if (detectedHW) {
+      runLibraryComparison();
+      if (($<HTMLInputElement>("#hf-compare-url")?.value || "").trim()) {
+        void submitHfCompare();
+      }
+    } else {
+      void initCompare();
+    }
   }
 
   document.addEventListener("astro:page-load", setupComparePage);

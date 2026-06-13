@@ -112,7 +112,7 @@ export const GET: APIRoute = async ({ props }) => {
                             type: 'span',
                             props: {
                               style: { fontSize: 22, color: '#22c55e', fontWeight: 700 },
-                              children: 'CanIRun.ai',
+                              children: 'canirunaimodel',
                             },
                           },
                         ],

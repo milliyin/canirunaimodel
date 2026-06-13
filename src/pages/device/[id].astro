@@ -17,14 +17,14 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 ---
 
 <Layout
-  title={`${deviceName} — Can it run AI? | CanIRun.ai`}
+  title={`${deviceName} — Can it run AI? | canirunaimodel`}
   description={`Find out which AI models you can run locally on ${deviceName}. VRAM requirements, performance estimates, and compatibility.`}
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "WebApplication",
-      "name": `CanIRun.ai — ${deviceName}`,
+      "name": `canirunaimodel — ${deviceName}`,
       "url": `${siteUrl}/device/${Astro.params.id}`,
       "description": `Find out which AI models your ${deviceName} can run locally.`,
       "applicationCategory": "DeveloperApplication",

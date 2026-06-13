@@ -10,7 +10,7 @@ interface Props {
 }
 
 const {
-  title = "CanIRun.ai - Check if your machine can run any Hugging Face model",
+  title = "canirunaimodel - Check if your machine can run any Hugging Face model",
   description = "Paste a Hugging Face model URL, detect your hardware, and estimate whether the model will run locally.",
   image = "/og/home.jpg",
   type = "website",
@@ -25,7 +25,10 @@ const ogImageURL = new URL(image, Astro.site);
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="canonical" href={canonicalURL.href} />
 
     <title>{title}</title>
@@ -60,7 +63,7 @@ const ogImageURL = new URL(image, Astro.site);
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="CanIRun.ai" />
+    <meta property="og:site_name" content="canirunaimodel" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
