@@ -2,6 +2,8 @@ import {
   estimateMemoryFromFileSize,
   estimateMemoryFromParams,
   inferArchitectureKind,
+  inferParamsFromBytes,
+  inferParamsFromSafetensors,
   inferParamsFromText,
   inferTensorTypeFromFilename,
   normalizeTensorType,
@@ -23,6 +25,11 @@ interface HFModelInfo {
   siblings?: HFSibling[];
   config?: Record<string, unknown>;
   cardData?: Record<string, unknown>;
+  safetensors?: {
+    total?: number;
+    parameters?: Record<string, number>;
+  };
+  usedStorage?: number;
 }
 
 function preferKnownString<T extends string>(...values: T[]): T {
@@ -104,12 +111,20 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
     .filter(Boolean)
     .join(" ");
 
-  const paramsBillions = inferParamsFromText(repoText);
+  const textParamsBillions = inferParamsFromText(repoText);
+
+  const safetensorsEstimate = inferParamsFromSafetensors(repoInfo.safetensors?.parameters);
 
   const configTensor = preferKnownString(
+    safetensorsEstimate.tensorType,
     normalizeTensorType(getString(config?.torch_dtype)),
     normalizeTensorType(getString(repoInfo.config?.torch_dtype)),
   );
+
+  const paramsBillions =
+    safetensorsEstimate.paramsBillions ||
+    textParamsBillions ||
+    inferParamsFromBytes(repoInfo.usedStorage || 0, configTensor);
 
   const profiles = uniqueProfiles(
     (repoInfo.siblings || [])
@@ -180,12 +195,20 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
     confidence = nativeProfile && profiles.some((profile) => profile.source === "filesize") ? "high" : confidence;
   }
 
+  if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
+    confidence = profiles.some((profile) => profile.source === "filesize") ? "exact" : "high";
+  }
+
   if (profiles.some((profile) => profile.source === "filesize")) {
     notes.push("At least one estimate comes from actual file size metadata.");
+  } else if (safetensorsEstimate.paramsBillions && configTensor !== "unknown") {
+    notes.push("Estimate derived from Hugging Face safetensors metadata.");
   } else if (paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from config parameter count and tensor dtype.");
   } else if (paramsBillions && profiles.length > 0) {
     notes.push("Estimate derived from parameter count with fallback assumptions for missing tensor metadata.");
+  } else if (paramsBillions && repoInfo.usedStorage) {
+    notes.push("Estimate derived from repository storage size with low-confidence assumptions.");
   }
 
   const primary = pickPrimaryProfile(profiles);

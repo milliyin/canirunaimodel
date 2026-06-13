@@ -3,6 +3,8 @@ import {
   estimateMemoryFromFileSize,
   estimateMemoryFromParams,
   inferArchitectureKind,
+  inferParamsFromBytes,
+  inferParamsFromSafetensors,
   inferParamsFromText,
   inferTensorTypeFromFilename,
   normalizeTensorType,
@@ -20,6 +22,21 @@ describe("hf estimation helpers", () => {
     expect(inferParamsFromText("Qwen2.5-7B-Instruct")).toBe(7);
     expect(inferParamsFromText("Mixtral-8x7B-Instruct")).toBe(56);
     expect(inferParamsFromText("TinyLlama-1100M")).toBe(1.1);
+  });
+
+  it("infers params from storage bytes and tensor dtype", () => {
+    expect(inferParamsFromBytes(1_335_747_032, "f32")).toBe(0.3);
+  });
+
+  it("infers params and dtype from safetensors metadata", () => {
+    expect(
+      inferParamsFromSafetensors({
+        F32: 333_921_792,
+      }),
+    ).toEqual({
+      paramsBillions: 0.3,
+      tensorType: "f32",
+    });
   });
 
   it("infers tensor type from filenames", () => {

@@ -39,6 +39,8 @@ export interface HFNormalizedModel {
   profiles: HFEstimateProfile[];
 }
 
+type HFSafetensorsParameterMap = Partial<Record<string, number>>;
+
 const BYTES_PER_PARAM: Record<HFTensorType, number | null> = {
   f32: 4,
   f16: 2,
@@ -75,6 +77,46 @@ export function normalizeTensorType(input: string | null | undefined): HFTensorT
   if (value.includes("q3")) return "q3";
   if (value.includes("q2")) return "q2";
   return "unknown";
+}
+
+export function inferParamsFromBytes(
+  totalBytes: number,
+  tensorType: HFTensorType,
+): number | null {
+  const bytesPerParam = BYTES_PER_PARAM[tensorType];
+  if (!bytesPerParam || !Number.isFinite(totalBytes) || totalBytes <= 0) return null;
+  return round1(totalBytes / bytesPerParam / 1_000_000_000);
+}
+
+export function inferParamsFromSafetensors(
+  parameters: HFSafetensorsParameterMap | null | undefined,
+): { paramsBillions: number | null; tensorType: HFTensorType } {
+  if (!parameters || typeof parameters !== "object") {
+    return { paramsBillions: null, tensorType: "unknown" };
+  }
+
+  let totalParams = 0;
+  let dominantTensorType: HFTensorType = "unknown";
+  let dominantParams = 0;
+
+  for (const [rawTensorType, rawCount] of Object.entries(parameters)) {
+    if (!Number.isFinite(rawCount) || rawCount <= 0) continue;
+    totalParams += rawCount;
+    const tensorType = normalizeTensorType(rawTensorType);
+    if (rawCount > dominantParams && tensorType !== "unknown") {
+      dominantParams = rawCount;
+      dominantTensorType = tensorType;
+    }
+  }
+
+  if (totalParams <= 0) {
+    return { paramsBillions: null, tensorType: dominantTensorType };
+  }
+
+  return {
+    paramsBillions: round1(totalParams / 1_000_000_000),
+    tensorType: dominantTensorType,
+  };
 }
 
 export function inferArchitectureKind(rawArchitecture: string | null | undefined): HFArchitectureKind {
