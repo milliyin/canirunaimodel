@@ -56,6 +56,7 @@ Hugging Face URL -> Repo metadata -> Footprint estimate -> Browser hardware dete
 - Fallback parameter estimation from checkpoint size when metadata is incomplete
 - Better handling for adapters and LoRA-style repos
 - Side-by-side device comparison page
+- Gradio companion app for the live deployment
 - SEO-ready Astro site with canonical tags, sitemap support, and social metadata
 
 ## Getting started
@@ -70,6 +71,24 @@ pnpm dev
 ```
 
 Open [http://localhost:4321](http://localhost:4321).
+
+## Gradio app
+
+A small Python Gradio wrapper lives in [`gradio/`](./gradio). It points at the live deployment:
+
+- `https://canirunaimodel.vercel.app/`
+
+Run it with:
+
+```bash
+cd gradio
+python -m venv .venv
+. .venv/Scripts/activate
+pip install -r requirements.txt
+python app.py
+```
+
+Then open the local Gradio URL shown in your terminal.
 
 ## Commands
 
@@ -89,6 +108,7 @@ packages/
 public/
 scripts/
 tests/
+gradio/
 ```
 
 ## SEO notes
