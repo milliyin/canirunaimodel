@@ -25,6 +25,13 @@ interface HFModelInfo {
   cardData?: Record<string, unknown>;
 }
 
+function preferKnownString<T extends string>(...values: T[]): T {
+  for (const value of values) {
+    if (value !== "unknown") return value;
+  }
+  return values[0];
+}
+
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
     const response = await fetch(url, {
@@ -99,17 +106,24 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
 
   const paramsBillions = inferParamsFromText(repoText);
 
-  const configTensor =
-    normalizeTensorType(getString(config?.torch_dtype)) ||
-    normalizeTensorType(getString(repoInfo.config?.torch_dtype));
+  const configTensor = preferKnownString(
+    normalizeTensorType(getString(config?.torch_dtype)),
+    normalizeTensorType(getString(repoInfo.config?.torch_dtype)),
+  );
 
   const profiles = uniqueProfiles(
     (repoInfo.siblings || [])
       .map((sibling) => {
         const filename = sibling.rfilename || "";
         const tensorType = inferTensorTypeFromFilename(filename);
-        if (tensorType === "unknown") return null;
         const label = filename.split("/").pop() || filename;
+        if (tensorType === "unknown") {
+          const lower = filename.toLowerCase();
+          if ((lower.endsWith(".safetensors") || lower.endsWith(".bin")) && sibling.size) {
+            return estimateMemoryFromFileSize(label, "bf16", sibling.size);
+          }
+          return null;
+        }
         if (sibling.size) {
           return estimateMemoryFromFileSize(label, tensorType, sibling.size);
         }
@@ -127,6 +141,25 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
       ? estimateMemoryFromParams(paramsBillions, configTensor)
       : null;
   if (nativeProfile) profiles.unshift({ ...nativeProfile, label: `Native ${configTensor.toUpperCase()}` });
+
+  if (paramsBillions && profiles.length === 0) {
+    const fallbackNative = estimateMemoryFromParams(paramsBillions, configTensor === "unknown" ? "bf16" : configTensor);
+    const fallbackQ4 = estimateMemoryFromParams(paramsBillions, "q4");
+    if (fallbackNative) {
+      profiles.push({
+        ...fallbackNative,
+        label: configTensor === "unknown" ? "Fallback BF16" : `Native ${configTensor.toUpperCase()}`,
+        source: "config",
+      });
+    }
+    if (fallbackQ4) {
+      profiles.push({
+        ...fallbackQ4,
+        label: "Estimated Q4",
+        source: "config",
+      });
+    }
+  }
 
   const notes: string[] = [];
   let confidence: HFConfidence = "low";
@@ -151,6 +184,8 @@ export async function fetchAndNormalizeHfModel(input: string): Promise<HFNormali
     notes.push("At least one estimate comes from actual file size metadata.");
   } else if (paramsBillions && configTensor !== "unknown") {
     notes.push("Estimate derived from config parameter count and tensor dtype.");
+  } else if (paramsBillions && profiles.length > 0) {
+    notes.push("Estimate derived from parameter count with fallback assumptions for missing tensor metadata.");
   }
 
   const primary = pickPrimaryProfile(profiles);

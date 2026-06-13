@@ -52,4 +52,10 @@ describe("hf estimation helpers", () => {
     ]);
     expect(primary?.tensorType).toBe("q4");
   });
+
+  it("supports fallback native estimate when dtype unknown", () => {
+    const native = estimateMemoryFromParams(8, "bf16");
+    const q4 = estimateMemoryFromParams(8, "q4");
+    expect(native?.estimatedVRAMGB).toBeGreaterThan(q4?.estimatedVRAMGB || 0);
+  });
 });
