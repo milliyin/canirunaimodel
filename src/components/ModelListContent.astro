@@ -1941,8 +1941,12 @@ function timeAgo(dateStr: string | null): string {
       const popRect = popup.getBoundingClientRect()
       let left = rect.left + rect.width / 2 - popRect.width / 2
       left = Math.max(margin, Math.min(left, window.innerWidth - popRect.width - margin))
-      let top = rect.top - popRect.height - margin
-      if (top < margin) top = rect.bottom + margin
+      const topAbove = rect.top - popRect.height - margin
+      const topBelow = rect.bottom + margin
+      const fitsAbove = topAbove >= margin
+      const fitsBelow = topBelow + popRect.height <= window.innerHeight - margin
+      let top = fitsAbove || !fitsBelow ? topAbove : topBelow
+      top = Math.max(margin, Math.min(top, window.innerHeight - popRect.height - margin))
       popup.style.left = `${left}px`
       popup.style.top = `${top}px`
     }
