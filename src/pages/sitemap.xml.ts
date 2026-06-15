@@ -4,17 +4,15 @@ const siteUrl = (import.meta.env.PUBLIC_SITE_URL || import.meta.env.SITE_URL || 
 
 type SitemapEntry = {
   path: string;
-  changefreq: "daily" | "weekly" | "monthly";
-  priority: string;
 };
 
 const buildEntries = (): SitemapEntry[] => {
   return [
-    { path: "/", changefreq: "daily", priority: "1.0" },
-    { path: "/check", changefreq: "daily", priority: "0.9" },
-    { path: "/compare", changefreq: "weekly", priority: "0.8" },
-    { path: "/docs", changefreq: "weekly", priority: "0.7" },
-    { path: "/why", changefreq: "weekly", priority: "0.7" },
+    { path: "/" },
+    { path: "/check" },
+    { path: "/compare" },
+    { path: "/docs" },
+    { path: "/why" },
   ];
 };
 
@@ -33,8 +31,6 @@ export const GET: APIRoute = () => {
       (entry) => `  <url>
     <loc>${xmlEscape(`${siteUrl}${entry.path}`)}</loc>
     <lastmod>${lastmod}</lastmod>
-    <changefreq>${entry.changefreq}</changefreq>
-    <priority>${entry.priority}</priority>
   </url>`,
     )
     .join("\n");

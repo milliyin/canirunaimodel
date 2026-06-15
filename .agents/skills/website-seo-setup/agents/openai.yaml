@@ -1,0 +1,4 @@
+interface:
+  display_name: "Website SEO Setup"
+  short_description: "Audit and implement technical and on-page SEO"
+  default_prompt: "Audit this website's SEO setup and implement the highest-impact fixes."
