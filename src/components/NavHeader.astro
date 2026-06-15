@@ -1,5 +1,4 @@
 ---
-import Logo from "@/icons/logo.svg";
 const currentPath = Astro.url.pathname;
 const buildDate = new Date();
 const githubUrl = "https://github.com/milliyin/canirunaimodel";
@@ -15,8 +14,8 @@ const links = [
 <nav class="border-b border-edge/40">
   <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
     <div class="flex items-center gap-2">
-      <a href="/" class="flex items-center gap-1 font-pixel text-sm text-accent transition-colors hover:text-primary">
-        <Logo class="size-3" />
+      <a href="/" class="flex items-center gap-1.5 font-pixel text-sm text-accent transition-colors hover:text-primary">
+        <img src="/favicon.svg" alt="" width="20" height="20" class="size-5 shrink-0 rounded-sm" />
         canirunaimodel
       </a>
       <time id="build-time" class="font-mono text-xs text-primary/40" datetime={buildDate.toISOString()}>
@@ -87,8 +86,8 @@ const links = [
   aria-hidden="true"
 >
   <div class="flex items-center justify-between px-4 py-2.5">
-    <a href="/" class="flex items-center gap-1 font-pixel text-sm text-accent transition-colors hover:text-primary">
-      <Logo class="size-3" />
+    <a href="/" class="flex items-center gap-1.5 font-pixel text-sm text-accent transition-colors hover:text-primary">
+      <img src="/favicon.svg" alt="" width="20" height="20" class="size-5 shrink-0 rounded-sm" />
       canirunaimodel
     </a>
     <button
