@@ -106,12 +106,23 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 
 <script>
   import {
+    applyOverrides,
     detectHardware,
     evaluateModelComplete,
+    getDeviceOverrides,
     getDisplayName,
+    getHardwareOverrides,
+    saveHardwareOverrides,
     type HardwareInfo,
+    RAM_OPTIONS,
+    BW_OPTIONS,
     GRADES,
   } from "@/lib/hardware"
+  import {
+    appendDeviceOptgroups,
+    fitSelectWidth,
+    populateSelect,
+  } from "@/lib/hardware-ui"
 
   type Profile = {
     label: string
@@ -155,7 +166,9 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 
     if (!form || !input || !hardwareEl || !resultsEl || !summaryEl || !profilesEl || !errorEl) return
 
+    let detectedHW: HardwareInfo | null = null
     let hw: HardwareInfo | null = null
+    let currentPayload: ModelPayload | null = null
 
     function setError(message: string) {
       errorEl.textContent = message
@@ -176,15 +189,206 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
       return initialUrl || null
     }
 
+    function populateDeviceSelect(select: HTMLSelectElement) {
+      if (!detectedHW) return
+      const overrides = getHardwareOverrides()
+      select.innerHTML = ""
+
+      const autoOpt = document.createElement("option")
+      autoOpt.value = "auto"
+      autoOpt.textContent = `${getDisplayName(detectedHW)} (detected)`
+      select.appendChild(autoOpt)
+
+      const customOpt = document.createElement("option")
+      customOpt.value = "custom"
+      customOpt.textContent = "Custom"
+      select.appendChild(customOpt)
+
+      appendDeviceOptgroups(select, overrides.device)
+      select.value = overrides.device || "auto"
+      select.disabled = false
+      fitSelectWidth(select)
+    }
+
+    function rerenderCurrentResult() {
+      if (currentPayload) {
+        renderResult(currentPayload)
+      }
+    }
+
     function renderHardware(current: HardwareInfo) {
+      const overrides = getHardwareOverrides()
+      const effectiveVram = current.ramGB ?? current.estimatedVRAM ?? current.totalUsableRAM
+      const effectiveBandwidth = current.memoryBandwidth
+      const showSystemRam = !current.isMobile
+
       hardwareEl.innerHTML = `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span><span class="text-muted">Device:</span> <span class="text-primary">${getDisplayName(current)}</span></span>
-          <span><span class="text-muted">VRAM:</span> <span class="text-primary">${current.estimatedVRAM ?? current.totalUsableRAM ?? "?"} GB</span></span>
-          <span><span class="text-muted">RAM:</span> <span class="text-primary">${current.systemRAM ?? current.totalUsableRAM ?? "?"} GB</span></span>
-          <span><span class="text-muted">BW:</span> <span class="text-primary">${current.memoryBandwidth ?? "?"} GB/s</span></span>
+          <label class="inline-flex items-center gap-1.5">
+            <span class="text-muted">Device</span>
+            <select id="check-device-select" class="hw-editable-select text-primary" disabled>
+              <option value="">detecting...</option>
+            </select>
+          </label>
+          <label class="inline-flex items-center gap-1.5">
+            <span class="text-muted">VRAM</span>
+            <select id="check-vram-select" class="hw-editable-select text-primary" ${effectiveVram ? "" : "disabled"}>
+              <option value="">${effectiveVram ? `${effectiveVram} GB` : "unknown"}</option>
+            </select>
+          </label>
+          ${
+            showSystemRam
+              ? `<label class="inline-flex items-center gap-1.5">
+                  <span class="text-muted">RAM</span>
+                  <select id="check-sysram-select" class="hw-editable-select text-primary"></select>
+                </label>`
+              : ""
+          }
+          ${
+            effectiveBandwidth
+              ? `<label class="inline-flex items-center gap-1.5">
+                  <span class="text-muted">BW</span>
+                  <select id="check-bw-select" class="hw-editable-select text-primary"></select>
+                </label>`
+              : ""
+          }
+          ${
+            current.gpuCores
+              ? `<span><span class="text-muted">Cores:</span> <span class="text-primary">${current.gpuCores.toLocaleString()}</span></span>`
+              : ""
+          }
         </div>
+        <p class="mt-3 text-xs leading-5 text-muted">
+          Edit these estimate specs to test a different local setup. Changes are saved in this browser and the verdict below updates immediately.
+        </p>
       `
+
+      const deviceSelect = document.getElementById("check-device-select") as HTMLSelectElement | null
+      const vramSelect = document.getElementById("check-vram-select") as HTMLSelectElement | null
+      const sysramSelect = document.getElementById("check-sysram-select") as HTMLSelectElement | null
+      const bwSelect = document.getElementById("check-bw-select") as HTMLSelectElement | null
+
+      if (deviceSelect) populateDeviceSelect(deviceSelect)
+
+      if (vramSelect && effectiveVram && detectedHW) {
+        populateSelect(
+          vramSelect,
+          RAM_OPTIONS,
+          detectedHW.ramGB ?? detectedHW.estimatedVRAM,
+          overrides.ramGB ?? effectiveVram,
+          (v) => `${v} GB`,
+        )
+        vramSelect.disabled = false
+        fitSelectWidth(vramSelect)
+      }
+
+      if (sysramSelect) {
+        if (current.isAppleSilicon) {
+          sysramSelect.innerHTML = ""
+          const opt = document.createElement("option")
+          opt.value = ""
+          opt.textContent = `${current.totalUsableRAM ?? current.ramGB ?? "unknown"} GB unified`
+          sysramSelect.appendChild(opt)
+          sysramSelect.disabled = true
+          sysramSelect.classList.add("opacity-50", "cursor-not-allowed")
+        } else {
+          const raw = detectedHW?.deviceMemoryRaw
+          const isGte8 = raw === null || raw === undefined || raw >= 8
+          const selected = overrides.systemRAM ?? current.systemRAM ?? 16
+          sysramSelect.innerHTML = ""
+
+          const browserOpt = document.createElement("option")
+          browserOpt.value = "16"
+          browserOpt.textContent = isGte8 ? ">=8 GB (browser hint)" : ">=8 GB"
+          sysramSelect.appendChild(browserOpt)
+
+          const lowOpt = document.createElement("option")
+          lowOpt.value = "4"
+          lowOpt.textContent = !isGte8 ? "<8 GB (browser hint)" : "<8 GB"
+          sysramSelect.appendChild(lowOpt)
+
+          for (const v of [8, 16, 32, 64, 128]) {
+            const opt = document.createElement("option")
+            opt.value = String(v)
+            opt.textContent = `${v} GB`
+            sysramSelect.appendChild(opt)
+          }
+
+          sysramSelect.value = String(selected)
+          fitSelectWidth(sysramSelect)
+        }
+      }
+
+      if (bwSelect && effectiveBandwidth && detectedHW) {
+        populateSelect(
+          bwSelect,
+          BW_OPTIONS,
+          detectedHW.memoryBandwidth,
+          overrides.memoryBandwidth ?? effectiveBandwidth,
+          (v) => `~${v} GB/s`,
+        )
+        fitSelectWidth(bwSelect)
+      }
+
+      setupHardwareEditing()
+    }
+
+    function handleDeviceChange(deviceKey: string) {
+      if (!detectedHW) return
+
+      if (deviceKey === "custom") {
+        const prev = getHardwareOverrides()
+        prev.device = "custom"
+        saveHardwareOverrides(prev)
+        return
+      }
+
+      if (deviceKey === "auto") {
+        saveHardwareOverrides({})
+        hw = { ...detectedHW }
+        renderHardware(hw)
+        rerenderCurrentResult()
+        return
+      }
+
+      const deviceOverrides = getDeviceOverrides(deviceKey)
+      if (!deviceOverrides) return
+      const prev = getHardwareOverrides()
+      if (prev.systemRAM !== undefined) deviceOverrides.systemRAM = prev.systemRAM
+      saveHardwareOverrides(deviceOverrides)
+      hw = applyOverrides(detectedHW, deviceOverrides)
+      renderHardware(hw)
+      rerenderCurrentResult()
+    }
+
+    function setupHardwareEditing() {
+      const deviceSelect = document.getElementById("check-device-select") as HTMLSelectElement | null
+      const vramSelect = document.getElementById("check-vram-select") as HTMLSelectElement | null
+      const sysramSelect = document.getElementById("check-sysram-select") as HTMLSelectElement | null
+      const bwSelect = document.getElementById("check-bw-select") as HTMLSelectElement | null
+
+      deviceSelect?.addEventListener("change", () => {
+        handleDeviceChange(deviceSelect.value)
+      })
+
+      function handleFieldChange() {
+        if (!detectedHW) return
+        const overrides = getHardwareOverrides()
+        if (vramSelect?.value) overrides.ramGB = Number(vramSelect.value)
+        if (sysramSelect?.value) overrides.systemRAM = Number(sysramSelect.value)
+        if (bwSelect?.value) overrides.memoryBandwidth = Number(bwSelect.value)
+        if (!overrides.device || overrides.device === "auto") {
+          overrides.device = "custom"
+        }
+        saveHardwareOverrides(overrides)
+        hw = applyOverrides(detectedHW, overrides)
+        renderHardware(hw)
+        rerenderCurrentResult()
+      }
+
+      vramSelect?.addEventListener("change", handleFieldChange)
+      sysramSelect?.addEventListener("change", handleFieldChange)
+      bwSelect?.addEventListener("change", handleFieldChange)
     }
 
     function verdictHtml(profile: Profile, paramsBillions: number | null) {
@@ -314,7 +518,8 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     async function init() {
       const initialUrl = loadPrefilledUrl()
       try {
-        hw = await detectHardware()
+        detectedHW = await detectHardware()
+        hw = applyOverrides(detectedHW)
         renderHardware(hw)
       } catch {
         hardwareEl.textContent = "Hardware detection failed. You can still inspect metadata."
@@ -345,11 +550,16 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
         const response = await fetch(`/api/hf/model?url=${encodeURIComponent(url)}`)
         const payload = await response.json()
         if (!response.ok) {
+          currentPayload = null
+          resultsEl.classList.add("hidden")
           setError(payload.error === "invalid_huggingface_url" ? "URL does not look like a Hugging Face model repo." : "Could not fetch metadata from Hugging Face.")
           return
         }
-        renderResult(payload as ModelPayload)
+        currentPayload = payload as ModelPayload
+        renderResult(currentPayload)
       } catch {
+        currentPayload = null
+        resultsEl.classList.add("hidden")
         setError("Request failed. Try again in a moment.")
       } finally {
         if (button) {
