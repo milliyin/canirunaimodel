@@ -250,8 +250,9 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     getHardwareOverrides,
     GRADES,
   } from "@/lib/hardware";
-  import type { HardwareInfo, Grade, GradeInfo } from "@/lib/hardware";
+  import type { HardwareInfo, Grade, GradeInfo, HardwareOverrides } from "@/lib/hardware";
   import { appendDeviceOptgroups, formatChipName } from "@/lib/hardware-ui";
+  import { renderEditableHardwareSpecs } from "@/lib/editable-hardware-specs";
   import { models } from "@/data/models";
 
   type Profile = {
@@ -301,6 +302,7 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 
   let detectedHW: HardwareInfo | null = null;
   let currentPayload: ModelPayload | null = null;
+  let sideOverrides: Record<"a" | "b", HardwareOverrides> = { a: {}, b: {} };
 
   function resetAndPopulateSelect(select: HTMLSelectElement, firstOption: { value: string; text: string }) {
     select.innerHTML = "";
@@ -311,13 +313,15 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     appendDeviceOptgroups(select);
   }
 
-  function buildHardwareInfo(deviceKey: string): HardwareInfo | null {
-    if (deviceKey === "auto") return detectedHW;
+  function buildHardwareInfo(deviceKey: string, side: "a" | "b"): HardwareInfo | null {
+    if (deviceKey === "auto") {
+      return detectedHW ? applyOverrides(detectedHW, sideOverrides[side]) : null;
+    }
 
     const overrides = getDeviceOverrides(deviceKey);
     if (!overrides) return null;
 
-    return {
+    const base: HardwareInfo = {
       gpuRenderer: null,
       gpuVendor: null,
       gpuCores: overrides.gpuCores ?? null,
@@ -336,6 +340,7 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
       isMobile: overrides.isMobile ?? false,
       deviceName: null,
     };
+    return applyOverrides(base, sideOverrides[side]);
   }
 
   function getDeviceLabel(deviceKey: string): string {
@@ -346,13 +351,30 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     return deviceKey;
   }
 
-  function renderSpecs(container: HTMLElement, deviceKey: string, hw: HardwareInfo) {
+  function renderSpecs(container: HTMLElement, deviceKey: string, hw: HardwareInfo, side: "a" | "b") {
     const label = getDeviceLabel(deviceKey);
-    const parts: string[] = [`<strong class="text-primary">${label}</strong>`];
-    if (hw.ramGB) parts.push(`${hw.ramGB} GB ${hw.isAppleSilicon ? "Unified" : "VRAM"}`);
-    if (hw.memoryBandwidth) parts.push(`~${hw.memoryBandwidth} GB/s`);
-    if (hw.gpuCores) parts.push(`${hw.gpuCores.toLocaleString()} cores`);
-    container.innerHTML = parts.join(' <span class="text-edge">|</span> ');
+    container.innerHTML = `
+      <p class="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-muted">${side === "a" ? "Device A" : "Device B"}</p>
+      <p class="mb-3 font-pixel text-sm text-primary">${label}</p>
+      <div id="compare-${side}-spec-controls"></div>
+    `;
+    const specs = $<HTMLElement>(`#compare-${side}-spec-controls`);
+    if (!specs) return;
+    renderEditableHardwareSpecs({
+      prefix: `compare-${side}-specs`,
+      container: specs,
+      hw,
+      detectedHW: side === "a" ? detectedHW : null,
+      overrides: sideOverrides[side],
+      note: "Edit this side's estimate specs for this comparison only.",
+      onChange(nextOverrides) {
+        sideOverrides[side] = nextOverrides;
+        runLibraryComparison();
+        if (currentPayload) {
+          renderHfComparison(currentPayload);
+        }
+      },
+    });
   }
 
   function updateDynamicLabels() {
@@ -448,16 +470,16 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
       return;
     }
 
-    const hwA = buildHardwareInfo(keyA);
-    const hwB = buildHardwareInfo(keyB);
+    const hwA = buildHardwareInfo(keyA, "a");
+    const hwB = buildHardwareInfo(keyB, "b");
     if (!hwA || !hwB) return;
 
     updateDynamicLabels();
 
     const specsBar = $("#specs-bar");
     specsBar?.classList.remove("hidden");
-    if ($("#specs-a")) renderSpecs($("#specs-a") as HTMLElement, keyA, hwA);
-    if ($("#specs-b")) renderSpecs($("#specs-b") as HTMLElement, keyB, hwB);
+    if ($("#specs-a")) renderSpecs($("#specs-a") as HTMLElement, keyA, hwA, "a");
+    if ($("#specs-b")) renderSpecs($("#specs-b") as HTMLElement, keyB, hwB, "b");
 
     $("#empty-state")?.classList.add("hidden");
     $("#compare-table")?.classList.remove("hidden");
@@ -628,8 +650,8 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
     const selectB = $<HTMLSelectElement>("#device-b");
     if (!selectA || !selectB) return;
 
-    const hwA = buildHardwareInfo(selectA.value);
-    const hwB = buildHardwareInfo(selectB.value);
+    const hwA = buildHardwareInfo(selectA.value, "a");
+    const hwB = buildHardwareInfo(selectB.value, "b");
     if (!hwA || !hwB) return;
 
     const profile = payload.primaryProfile || payload.model.profiles[0] || null;
@@ -846,8 +868,14 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
 
     loadFromURL();
 
-    selectA.onchange = onDeviceChange;
-    selectB.onchange = onDeviceChange;
+    selectA.onchange = () => {
+      sideOverrides.a = {};
+      onDeviceChange();
+    };
+    selectB.onchange = () => {
+      sideOverrides.b = {};
+      onDeviceChange();
+    };
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
