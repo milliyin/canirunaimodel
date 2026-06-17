@@ -377,6 +377,9 @@ const siteUrl = Astro.site ? Astro.site.toString().replace(/\/$/, "") : "https:/
         if (vramSelect?.value) overrides.ramGB = Number(vramSelect.value)
         if (sysramSelect?.value) overrides.systemRAM = Number(sysramSelect.value)
         if (bwSelect?.value) overrides.memoryBandwidth = Number(bwSelect.value)
+        if (!overrides.device || overrides.device === "auto") {
+          overrides.device = "custom"
+        }
         saveHardwareOverrides(overrides)
         hw = applyOverrides(detectedHW, overrides)
         renderHardware(hw)
